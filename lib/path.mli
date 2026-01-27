@@ -29,6 +29,12 @@ val abs : string list -> t
 (** [rel ["foo"; "bar"]] builds the path ["./foo/bar"]. *)
 val rel : string list -> t
 
+(** [root] is the root of the file system ["/"]. *)
+val root : t
+
+(** [cwd] is the current working directory ["./"]. *)
+val cwd : t
+
 (** {1 Predicates}
 
     Predicates on file paths. *)
@@ -40,6 +46,14 @@ val is_absolute : t -> bool
 (** [is_relative p] returns [true] if [p] is defined as a relative
     path, [false] otherwise. *)
 val is_relative : t -> bool
+
+(** [is_root p] returns [true] if the path [p] {i seems to point} ["/"]. *)
+val is_root : t -> bool
+
+(** [is_cwd p] returns [true] if the path [p] {i seems to point} ["./"]. *)
+val is_cwd : t -> bool
+
+(** {1 Comparison} *)
 
 (** [equal p1 p2] returns [true] if [p1 = p2], [false] otherwise. *)
 val equal : t -> t -> bool

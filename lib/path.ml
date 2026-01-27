@@ -45,6 +45,9 @@ let from_fragment_list fragments =
      paths are created than are manipulated. In order to simplify the
      resolution of paths such as [‘../../f’], I have decided to keep
      the paths in the correct order. *)
+
+  (* FIXME: Take into account the resolution [".."] but I am awaiting
+     for test-suite. *)
   fragments
   |> List.concat_map (fun fragment ->
     fragment
@@ -60,6 +63,8 @@ let from_fragment_list fragments =
 
 let abs fragments = Absolute (from_fragment_list fragments)
 let rel fragments = Relative (from_fragment_list fragments)
+let cwd = Relative []
+let root = Absolute []
 
 let is_relative = function
   | Relative _ -> true
@@ -69,4 +74,23 @@ let is_relative = function
 let is_absolute = function
   | Relative _ -> false
   | Absolute _ -> true
+;;
+
+let is_cwd = function
+  | Relative [] ->
+    (* FIXME: In the case of resolutions (e.g. switching from
+       ["foo/.."]), the test is not sufficient. To be corrected when
+       the resolution takes effect.*)
+    true
+  | _ -> false
+;;
+
+let is_root = function
+  | Absolute [] -> true
+  | _ ->
+    (* KLUDGE: Some root opportunities may be missed if [cwd] = [root]
+       or if the resolution of [cwd] points to the root. However, I do
+       not believe there is a straightforward way to fix this while
+       remaining abstract. *)
+    false
 ;;

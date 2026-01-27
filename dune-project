@@ -26,6 +26,8 @@
  (description "An abstract implementation of file paths")
  (depends
   (ocaml (>= 5.0.0))
+
+  ;; test setup
    
   ;; dev setup
   (utop :with-dev-setup)
