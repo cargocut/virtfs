@@ -3,6 +3,9 @@
 
    SPDX-License-Identifier: BSD-3-Clause *)
 
+(* Essentially path creation tests and the public API serving as a
+   safeguard. *)
+
 open Test_util
 
 let%expect_test "to_string for [cwd]" =
@@ -153,4 +156,36 @@ let%expect_test "to_string with relative resolution at the origin of [cwd]" =
 let%expect_test "to_string with relative resolution at the origin of [cwd]" =
   Path.(rel [ ".."; "foo"; ".."; "baz" ]) |> dump_path;
   [%expect {| ./../baz |}]
+;;
+
+let%expect_test "to_string with relative resolution" =
+  Path.(rel [ "foo"; "bar"; ".."; "foobar"; ".."; ".."; ".."; ".."; "baz" ])
+  |> dump_path;
+  [%expect {| ./../../baz |}]
+;;
+
+let%expect_test "to_string with absolute resolution" =
+  Path.(abs [ "foo"; "bar"; ".."; "foobar"; ".."; ".."; ".."; ".."; "baz" ])
+  |> dump_path;
+  [%expect {| /baz |}]
+;;
+
+let%expect_test "is_cwd with resolution" =
+  Path.(rel [ "foo"; "bar"; ".."; ".." ] |> is_cwd) |> dump_bool;
+  [%expect {| true |}]
+;;
+
+let%expect_test "is_cwd with resolution" =
+  Path.(rel [ "foo"; "bar"; ".."; ".."; ".." ] |> is_cwd) |> dump_bool;
+  [%expect {| false |}]
+;;
+
+let%expect_test "is_root with resolution" =
+  Path.(abs [ "foo"; "bar"; ".."; ".." ] |> is_root) |> dump_bool;
+  [%expect {| true |}]
+;;
+
+let%expect_test "is_root with resolution" =
+  Path.(abs [ "foo"; "bar"; ".."; ".."; ".." ] |> is_root) |> dump_bool;
+  [%expect {| true |}]
 ;;

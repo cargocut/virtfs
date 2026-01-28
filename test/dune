@@ -3,6 +3,6 @@
  (inline_tests)
  (flags (:standard) -open Virtfs)
  (libraries virtfs)
- (private_modules test_util)
+ (private_modules path_core_test path_resolution_test)
  (preprocess
   (pps ppx_expect)))
