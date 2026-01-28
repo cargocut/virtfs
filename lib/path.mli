@@ -64,3 +64,8 @@ val equal : t -> t -> bool
     is shorter than an absolute path} then the lexicographical order
     is chosen. *)
 val compare : t -> t -> int
+
+(** {1 Misc} *)
+
+(** [to_string p] returns the representation of the path [p]. *)
+val to_string : t -> string

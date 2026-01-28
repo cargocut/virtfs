@@ -14,6 +14,13 @@ let equal a b =
   | Relative _, Absolute _ | Absolute _, Relative _ -> false
 ;;
 
+let to_string = function
+  | Relative [] -> "./"
+  | Absolute [] -> "/"
+  | Relative xs -> String.concat Filename.dir_sep ("." :: xs)
+  | Absolute xs -> String.concat Filename.dir_sep ("" :: xs)
+;;
+
 let compare a b =
   match a, b with
   | Relative _, Absolute _ -> -1

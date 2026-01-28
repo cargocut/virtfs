@@ -1,0 +1,8 @@
+(library
+ (name virtfs_test)
+ (inline_tests)
+ (flags (:standard) -open Virtfs)
+ (libraries virtfs)
+ (private_modules test_util)
+ (preprocess
+  (pps ppx_expect)))

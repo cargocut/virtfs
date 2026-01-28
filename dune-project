@@ -28,6 +28,8 @@
   (ocaml (>= 5.0.0))
 
   ;; test setup
+  (ppx_expect (and :with-test (>= 0.17.3)))
+  (mdx (and :with-test  (>= 2.5.1)))
    
   ;; dev setup
   (utop :with-dev-setup)
