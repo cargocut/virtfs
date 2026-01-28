@@ -134,3 +134,23 @@ let%expect_test "is_root for an arbitrary absolute path" =
   Path.(abs [ "foo"; "bar" ] |> is_root) |> dump_bool;
   [%expect {| false |}]
 ;;
+
+let%expect_test "to_string with relative resolution" =
+  Path.(rel [ "foo"; ".."; "bar"; "."; "baz" ]) |> dump_path;
+  [%expect {| ./bar/baz |}]
+;;
+
+let%expect_test "to_string with relative resolution" =
+  Path.(rel [ "foo"; "fooo"; "../.."; "bar"; ".\\foo"; "baz" ]) |> dump_path;
+  [%expect {| ./bar/foo/baz |}]
+;;
+
+let%expect_test "to_string with relative resolution at the origin of [cwd]" =
+  Path.(rel [ ".."; ".."; "baz" ]) |> dump_path;
+  [%expect {| ./../../baz |}]
+;;
+
+let%expect_test "to_string with relative resolution at the origin of [cwd]" =
+  Path.(rel [ ".."; "foo"; ".."; "baz" ]) |> dump_path;
+  [%expect {| ./../baz |}]
+;;

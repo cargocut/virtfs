@@ -46,29 +46,55 @@ let split_on_chars pred s =
   String.sub s 0 !j :: !r
 ;;
 
-let from_fragment_list fragments =
+let split_separator =
+  split_on_chars (function
+    | '/' | '\\' ->
+      (* KLUDGE: Experience has shown that in YOCaml, being a
+         little lax about path management is quite acceptable. By
+         not using [Filename.dir_sep], we can ‘potentially’ support
+         more cases. *)
+      true
+    | _ -> false)
+;;
+
+let from_fragment_list ?(prefix = []) fragments =
   (* NOTE: In other experiments, paths are stored in reverse order to
      facilitate queue processing: however, it would appear that more
      paths are created than are manipulated. In order to simplify the
      resolution of paths such as [‘../../f’], I have decided to keep
      the paths in the correct order. *)
-
-  (* FIXME: Take into account the resolution [".."] but I am awaiting
-     for test-suite. *)
-  fragments
-  |> List.concat_map (fun fragment ->
-    fragment
-    |> split_on_chars (function
-      | '/' | '\\' ->
-        (* KLUDGE: Experience has shown that in YOCaml, being a
-           little lax about path management is quite acceptable. By
-           not using [Filename.dir_sep], we can ‘potentially’ support
-           more cases. *)
-        true
-      | _ -> false))
+  let rec aux from curr fragments =
+    (* NOTE: Remove [".."] and ["."]  where possible.*)
+    match from, curr, fragments with
+    | (([] | ".." :: _) as fs), ".." :: ps, xs ->
+      (* Deal with sequence of leading [".."]*)
+      aux (".." :: fs) ps xs
+    | fs, "." :: ps, xs | _ :: fs, ".." :: ps, xs ->
+      (* Remove ["."] or [".."] (and collapse). *)
+      aux fs ps xs
+    | fs, x :: xs, ps ->
+      (* Move the segment to the analyzed part. *)
+      aux (x :: fs) xs ps
+    | fs, [], x :: xs ->
+      (* Split by potential separators inside the observable part. *)
+      aux fs (split_separator x) xs
+    | fs, [], [] ->
+      (* Works done. *)
+      List.rev fs
+  in
+  aux (List.rev prefix) [] fragments
 ;;
 
-let abs fragments = Absolute (from_fragment_list fragments)
+let abs fragments =
+  Absolute
+    (fragments
+     |> from_fragment_list
+     |> List.drop_while (String.equal "..")
+        (* OKAY: When you [cd ..] to the root (["/"]) of a Unix file
+           system, you remain at the root. Therefore, ["/.."] =
+           ["/"]. Hence the removal of the prefixes [".."]. *))
+;;
+
 let rel fragments = Relative (from_fragment_list fragments)
 let cwd = Relative []
 let root = Absolute []
@@ -85,7 +111,7 @@ let is_absolute = function
 
 let is_cwd = function
   | Relative [] ->
-    (* FIXME: In the case of resolutions (e.g. switching from
+    (* MAYBE: In the case of resolutions (e.g. switching from
        ["foo/.."]), the test is not sufficient. To be corrected when
        the resolution takes effect.*)
     true
