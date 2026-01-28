@@ -65,7 +65,14 @@ val equal : t -> t -> bool
     is chosen. *)
 val compare : t -> t -> int
 
-(** {1 Misc} *)
+(** {1 Conversion} *)
 
 (** [to_string p] returns the representation of the path [p]. *)
 val to_string : t -> string
+
+(** [from_string s] returns a path from the given string [s]. *)
+val from_string : string -> t
+
+(** [of_string] is {!val:from_string} - consistent with the OCaml
+    ecosystem. *)
+val of_string : string -> t

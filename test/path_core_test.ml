@@ -38,6 +38,31 @@ let%expect_test "to_string for an absolute path with strange segments" =
   [%expect {| /foo/bar/baz/foobar/eod |}]
 ;;
 
+let%expect_test "from_string" =
+  Path.("" |> from_string) |> dump_path;
+  [%expect {| / |}]
+;;
+
+let%expect_test "from_string" =
+  Path.("./" |> from_string) |> dump_path;
+  [%expect {| ./ |}]
+;;
+
+let%expect_test "from_string" =
+  Path.("foo/bar" |> from_string) |> dump_path;
+  [%expect {| ./foo/bar |}]
+;;
+
+let%expect_test "from_string" =
+  Path.("foo/bar/../../index.html" |> from_string) |> dump_path;
+  [%expect {| ./index.html |}]
+;;
+
+let%expect_test "from_string" =
+  Path.("/foo/bar/../../../index.html" |> from_string) |> dump_path;
+  [%expect {| /index.html |}]
+;;
+
 let%expect_test "is_relative for [cwd]" =
   Path.(cwd |> is_relative) |> dump_bool;
   [%expect {| true |}]

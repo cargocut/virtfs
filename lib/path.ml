@@ -99,6 +99,15 @@ let rel fragments = Relative (from_fragment_list fragments)
 let cwd = Relative []
 let root = Absolute []
 
+let from_string s =
+  match split_separator s with
+  | "." :: xs -> rel xs
+  | "" :: xs -> abs xs
+  | xs -> rel xs
+;;
+
+let of_string = from_string
+
 let is_relative = function
   | Relative _ -> true
   | Absolute _ -> false
