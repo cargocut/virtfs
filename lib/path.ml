@@ -108,6 +108,12 @@ let from_string s =
 
 let of_string = from_string
 
+let fragments = function
+  | Relative xs | Absolute xs -> xs
+;;
+
+let to_list = fragments
+
 let is_relative = function
   | Relative _ -> true
   | Absolute _ -> false
@@ -136,3 +142,21 @@ let is_root = function
        remaining abstract. *)
     false
 ;;
+
+let parent p =
+  let xs = fragments p in
+  (* KLUDGE: How does it behave in the presence of leading ".."?  In
+     the parent implementation, the parent of ["../.."] is [".."],
+     which is strange, but it follows the convention of the Unix
+     [dirname] implementation. *)
+  let rec aux acc = function
+    | [] -> if is_relative p then rel [ ".." ] else root
+    | [ _ ] ->
+      let xs = List.rev acc in
+      if is_relative p then rel xs else abs xs
+    | x :: xs -> aux (x :: acc) xs
+  in
+  aux [] xs
+;;
+
+let dirname = parent

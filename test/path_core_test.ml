@@ -214,3 +214,28 @@ let%expect_test "is_root with resolution" =
   Path.(abs [ "foo"; "bar"; ".."; ".."; ".." ] |> is_root) |> dump_bool;
   [%expect {| true |}]
 ;;
+
+let%expect_test "parent of cwd" =
+  Path.(cwd |> parent) |> dump_path;
+  [%expect {| ./.. |}]
+;;
+
+let%expect_test "parent of root" =
+  Path.(root |> parent) |> dump_path;
+  [%expect {| / |}]
+;;
+
+let%expect_test "parent of an absolute path" =
+  Path.(abs [ "foo"; "bar" ] |> parent) |> dump_path;
+  [%expect {| /foo |}]
+;;
+
+let%expect_test "parent of a relative path" =
+  Path.(rel [ "foo"; "bar" ] |> parent) |> dump_path;
+  [%expect {| ./foo |}]
+;;
+
+let%expect_test "parent of a relative path with resolution" =
+  Path.(rel [ ".."; ".." ] |> parent) |> dump_path;
+  [%expect {| ./.. |}]
+;;

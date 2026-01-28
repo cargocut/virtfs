@@ -35,6 +35,17 @@ val root : t
 (** [cwd] is the current working directory ["./"]. *)
 val cwd : t
 
+(** {1 Manipulation of path}
+
+    Manipulation/movement and path modifications. *)
+
+(** [parent p] returns the parent of [p]. The parent of [root] is
+    [root] and the parent of [cwd] is ["../"]. *)
+val parent : t -> t
+
+(** [dirname] is {!val:parent} - consistent with Unix Terminology. *)
+val dirname : t -> t
+
 (** {1 Predicates}
 
     Predicates on file paths. *)
@@ -76,3 +87,10 @@ val from_string : string -> t
 (** [of_string] is {!val:from_string} - consistent with the OCaml
     ecosystem. *)
 val of_string : string -> t
+
+(** [fragments p] returns the list of segments/fragments for a given
+    path [p]. *)
+val fragments : t -> string list
+
+(** [to_list p] is {!val:fragments}*)
+val to_list : t -> string list
