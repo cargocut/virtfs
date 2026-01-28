@@ -39,12 +39,17 @@ val cwd : t
 
     Manipulation/movement and path modifications. *)
 
-(** [parent p] returns the parent of [p]. The parent of [root] is
+(** [dirname p] returns the parent of [p]. The parent of [root] is
     [root] and the parent of [cwd] is ["../"]. *)
-val parent : t -> t
-
-(** [dirname] is {!val:parent} - consistent with Unix Terminology. *)
 val dirname : t -> t
+
+(** [basename p] returns the basename of [p]. The basename of [root]
+    is ["/"] and the basename of [cwd] is ["."]. *)
+val basename : t -> string
+
+(** [basename_opt p] returns the basename of [p]. The basename of
+    [root] and [cwd] is [None]. *)
+val basename_opt : t -> string option
 
 (** {1 Predicates}
 

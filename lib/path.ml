@@ -143,9 +143,9 @@ let is_root = function
     false
 ;;
 
-let parent p =
+let dirname p =
   let xs = fragments p in
-  (* KLUDGE: How does it behave in the presence of leading ".."?  In
+  (* NOTE: How does it behave in the presence of leading ".."?  In
      the parent implementation, the parent of ["../.."] is [".."],
      which is strange, but it follows the convention of the Unix
      [dirname] implementation. *)
@@ -159,4 +159,21 @@ let parent p =
   aux [] xs
 ;;
 
-let dirname = parent
+let basename_opt p =
+  let xs = fragments p in
+  let rec aux = function
+    | [] -> None
+    | [ x ] -> Some x
+    | _ :: xs -> aux xs
+  in
+  aux xs
+;;
+
+let basename p =
+  (* NOTE: It follows the convention of the Unix [basename]
+     implementation. Returning [.] for basename of [cwd] and [/] for
+     basename of [root]. *)
+  match basename_opt p with
+  | Some x -> x
+  | None -> if is_relative p then "." else "/"
+;;

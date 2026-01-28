@@ -215,27 +215,52 @@ let%expect_test "is_root with resolution" =
   [%expect {| true |}]
 ;;
 
-let%expect_test "parent of cwd" =
-  Path.(cwd |> parent) |> dump_path;
+let%expect_test "dirname of cwd" =
+  Path.(cwd |> dirname) |> dump_path;
   [%expect {| ./.. |}]
 ;;
 
-let%expect_test "parent of root" =
-  Path.(root |> parent) |> dump_path;
+let%expect_test "dirname of root" =
+  Path.(root |> dirname) |> dump_path;
   [%expect {| / |}]
 ;;
 
-let%expect_test "parent of an absolute path" =
-  Path.(abs [ "foo"; "bar" ] |> parent) |> dump_path;
+let%expect_test "dirname of an absolute path" =
+  Path.(abs [ "foo"; "bar" ] |> dirname) |> dump_path;
   [%expect {| /foo |}]
 ;;
 
-let%expect_test "parent of a relative path" =
-  Path.(rel [ "foo"; "bar" ] |> parent) |> dump_path;
+let%expect_test "dirname of a relative path" =
+  Path.(rel [ "foo"; "bar" ] |> dirname) |> dump_path;
   [%expect {| ./foo |}]
 ;;
 
-let%expect_test "parent of a relative path with resolution" =
-  Path.(rel [ ".."; ".." ] |> parent) |> dump_path;
+let%expect_test "dirname of a relative path with resolution" =
+  Path.(rel [ ".."; ".." ] |> dirname) |> dump_path;
   [%expect {| ./.. |}]
+;;
+
+let%expect_test "basename of cwd" =
+  Path.(cwd |> basename) |> print_endline;
+  [%expect {| . |}]
+;;
+
+let%expect_test "basename of root" =
+  Path.(root |> basename) |> print_endline;
+  [%expect {| / |}]
+;;
+
+let%expect_test "basename of an absolute path" =
+  Path.(abs [ "foo"; "bar" ] |> basename) |> print_endline;
+  [%expect {| bar |}]
+;;
+
+let%expect_test "basename of a relative path" =
+  Path.(rel [ "foo"; "bar" ] |> basename) |> print_endline;
+  [%expect {| bar |}]
+;;
+
+let%expect_test "basename of a relative path with resolution" =
+  Path.(rel [ ".."; ".." ] |> basename) |> print_endline;
+  [%expect {| .. |}]
 ;;
