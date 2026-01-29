@@ -56,6 +56,12 @@ let list_has_suffix ~equal ~suffix list =
   aux (List.rev suffix) (List.rev list)
 ;;
 
+let remove_string_suffix ~suffix str =
+  if String.ends_with ~suffix str
+  then String.sub str 0 (String.length str - String.length suffix)
+  else str
+;;
+
 let split_separator =
   split_on_chars (function
     | '/' | '\\' ->
@@ -202,16 +208,19 @@ let extension_opt p =
   | ext -> Some ext
 ;;
 
-let compound_extension p =
-  match basename_opt p with
-  | Some name ->
-    (match split_dot name with
-     | [] -> []
-     | _ :: extensions ->
-       (* NOTE: Mimics the behaviour of Python's
+let basename_compound_extension bname =
+  match split_dot bname with
+  | [] -> []
+  | _ :: extensions ->
+    (* NOTE: Mimics the behaviour of Python's
           {{:https://docs.python.org/3/library/pathlib.html} pathlib}}
           library.*)
-       List.map (fun x -> "." ^ x) extensions)
+    List.map (fun x -> "." ^ x) extensions
+;;
+
+let compound_extension p =
+  match basename_opt p with
+  | Some name -> basename_compound_extension name
   | None -> []
 ;;
 
@@ -258,3 +267,49 @@ let has_any_extension exts p =
   (* NOTE: In YOCaml, this function was named [one_of_extension]. *)
   List.exists (fun ext -> has_extension ext p) exts
 ;;
+
+let update_basename callback path =
+  (* KLUDGE: Coming up with a good proposal for updating [basename] in
+     the case of a root/cwd seems complicated.*)
+  let f, fragments =
+    match path with
+    | Relative xs -> rel, xs
+    | Absolute xs -> abs, xs
+  in
+  let rec aux acc = function
+    | [] -> path
+    | [ x ] -> f (List.rev (callback x :: acc))
+    | x :: xs -> aux (x :: acc) xs
+  in
+  aux [] fragments
+;;
+
+let basename_remove_extension ?kind bname =
+  match kind with
+  | None ->
+    (* Just remove the extension. *)
+    Filename.remove_extension bname
+  | Some (`Ext ext) ->
+    (* Remove the given extension. *)
+    let suffix = make_extension ext in
+    remove_string_suffix ~suffix bname
+  | Some `Compound ->
+    (* Remove the compound extension. *)
+    let suffix = bname |> basename_compound_extension |> String.concat "" in
+    remove_string_suffix ~suffix bname
+;;
+
+let basename_add_extension ext bname =
+  let ext = make_extension ext in
+  bname ^ ext
+;;
+
+let remove_extension ?kind = update_basename (basename_remove_extension ?kind)
+let add_extension ext = update_basename (basename_add_extension ext)
+
+let replace_extension ?kind ext =
+  update_basename (fun bname ->
+    bname |> basename_remove_extension ?kind |> basename_add_extension ext)
+;;
+
+let change_extension = replace_extension

@@ -85,6 +85,24 @@ val has_extension : string -> t -> bool
     extensions in [exts]. (It works on {b compound extension})*)
 val has_any_extension : string list -> t -> bool
 
+(** [remove_extension ?kind p] remove the extension of the given
+    [p]. The [kind] can change the extension removal strategy:
+
+    - [`Compound] Removes the compound extension.
+    - [`Ext str] Remove the given extension. *)
+val remove_extension : ?kind:[ `Compound | `Ext of string ] -> t -> t
+
+(** [add_extension ext p] add the [ext] to the given path [p]. *)
+val add_extension : string -> t -> t
+
+(** [replace_extension ?kind ext p] replace the extension of [p] by
+    [ext] (the previous extension is removed using
+    {!val:remove_extension}) using the given [kind]). *)
+val replace_extension : ?kind:[ `Compound | `Ext of string ] -> string -> t -> t
+
+(** [change_extension] is {!val:replace_extension}. *)
+val change_extension : ?kind:[ `Compound | `Ext of string ] -> string -> t -> t
+
 (** {1 Predicates}
 
     Predicates on file paths. *)

@@ -125,3 +125,70 @@ let%expect_test "has_any_extension - using compound" =
   |> dump_bool;
   [%expect {| false |}]
 ;;
+
+let%expect_test "remove_extension - regular case" =
+  Path.abs [ "foo.md" ] |> Path.remove_extension |> dump_path;
+  [%expect {| /foo |}]
+;;
+
+let%expect_test "remove_extension - regular case" =
+  Path.abs [ "foobar" ] |> Path.remove_extension |> dump_path;
+  [%expect {| /foobar |}]
+;;
+
+let%expect_test "remove_extension - regular case" =
+  Path.abs [ "foobar.tpl.html" ] |> Path.remove_extension |> dump_path;
+  [%expect {| /foobar.tpl |}]
+;;
+
+let%expect_test "remove_extension - compound case" =
+  Path.abs [ "foobar.tpl.html" ]
+  |> Path.remove_extension ~kind:`Compound
+  |> dump_path;
+  [%expect {| /foobar |}]
+;;
+
+let%expect_test "remove_extension - ext case" =
+  Path.abs [ "foobar.tpl.html" ]
+  |> Path.remove_extension ~kind:(`Ext "fobar.barbaz")
+  |> dump_path;
+  [%expect {| /foobar.tpl.html |}]
+;;
+
+let%expect_test "remove_extension - ext case" =
+  Path.abs [ "foobar.fobar.barbaz" ]
+  |> Path.remove_extension ~kind:(`Ext "fobar.barbaz")
+  |> dump_path;
+  [%expect {| /foobar |}]
+;;
+
+let%expect_test "remove_extension - ext case" =
+  Path.abs [ "foobar.fobar.barbaz.htm" ]
+  |> Path.remove_extension ~kind:(`Ext ".barbaz.htm")
+  |> dump_path;
+  [%expect {| /foobar.fobar |}]
+;;
+
+let%expect_test "add_extension" =
+  Path.abs [ "foobar.fobar.barbaz.htm" ]
+  |> Path.add_extension "tpl.html"
+  |> dump_path;
+  [%expect {| /foobar.fobar.barbaz.htm.tpl.html |}]
+;;
+
+let%expect_test "add_extension" =
+  Path.abs [ "foobar.fobar.barbaz.htm" ]
+  |> Path.add_extension ".tpl.html"
+  |> dump_path;
+  [%expect {| /foobar.fobar.barbaz.htm.tpl.html |}]
+;;
+
+let%expect_test "add_extension - on root it should return root" =
+  Path.abs [] |> Path.add_extension "tpl.html" |> dump_path;
+  [%expect {| / |}]
+;;
+
+let%expect_test "add_extension - on cwd it should return cwd" =
+  Path.rel [] |> Path.add_extension "tpl.html" |> dump_path;
+  [%expect {| ./ |}]
+;;
