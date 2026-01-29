@@ -1,7 +1,9 @@
-(* Copyright (c) 2026, Cargocut and the Virtfs developpers.
+(* Copyright (c) 2026, Cargocut and the Virtfs developers.
    All rights reserved.
 
    SPDX-License-Identifier: BSD-3-Clause *)
+
+let root_dir = ""
 
 type t =
   | Absolute of string list
@@ -15,10 +17,11 @@ let equal a b =
 ;;
 
 let to_string = function
-  | Relative [] -> "./"
-  | Absolute [] -> "/"
-  | Relative xs -> String.concat Filename.dir_sep ("." :: xs)
-  | Absolute xs -> String.concat Filename.dir_sep ("" :: xs)
+  | Relative [] -> Filename.current_dir_name ^ Filename.dir_sep
+  | Absolute [] -> Filename.dir_sep
+  | Relative xs ->
+    String.concat Filename.dir_sep (Filename.current_dir_name :: xs)
+  | Absolute xs -> String.concat Filename.dir_sep (root_dir :: xs)
 ;;
 
 let compare a b =
@@ -84,11 +87,18 @@ let from_fragment_list ?(prefix = []) fragments =
   let rec aux from curr fragments =
     (* NOTE: Remove [".."] and ["."]  where possible.*)
     match from, curr, fragments with
-    | (([] | ".." :: _) as fs), ".." :: ps, xs ->
+    | ([] as fs), c :: ps, xs when c = Filename.parent_dir_name ->
       (* Deal with sequence of leading [".."]*)
-      aux (".." :: fs) ps xs
-    | fs, "." :: ps, xs | _ :: fs, ".." :: ps, xs ->
-      (* Remove ["."] or [".."] (and collapse). *)
+      aux (Filename.parent_dir_name :: fs) ps xs
+    | (c1 :: _ as fs), c2 :: ps, xs
+      when c1 = Filename.parent_dir_name && c2 = Filename.parent_dir_name ->
+      (* Deal with sequence of leading [".."]*)
+      aux (Filename.parent_dir_name :: fs) ps xs
+    | fs, c :: ps, xs when c = Filename.current_dir_name ->
+      (* Remove ["."] *)
+      aux fs ps xs
+    | _ :: fs, c :: ps, xs when c = Filename.parent_dir_name ->
+      (* Remove [".."] (and collapse). *)
       aux fs ps xs
     | fs, x :: xs, ps ->
       (* Move the segment to the analyzed part. *)
@@ -107,7 +117,7 @@ let abs fragments =
   Absolute
     (fragments
      |> from_fragment_list
-     |> List.drop_while (String.equal "..")
+     |> List.drop_while (String.equal Filename.parent_dir_name)
         (* OKAY: When you [cd ..] to the root (["/"]) of a Unix file
            system, you remain at the root. Therefore, ["/.."] =
            ["/"]. Hence the removal of the prefixes [".."]. *))
@@ -119,8 +129,8 @@ let root = Absolute []
 
 let from_string s =
   match split_separator s with
-  | "." :: xs -> rel xs
-  | "" :: xs -> abs xs
+  | c :: xs when c = Filename.current_dir_name -> rel xs
+  | c :: xs when c = root_dir -> abs xs
   | xs -> rel xs
 ;;
 
@@ -168,7 +178,7 @@ let dirname p =
      which is strange, but it follows the convention of the Unix
      [dirname] implementation. *)
   let rec aux acc = function
-    | [] -> if is_relative p then rel [ ".." ] else root
+    | [] -> if is_relative p then rel [ Filename.parent_dir_name ] else root
     | [ _ ] ->
       let xs = List.rev acc in
       if is_relative p then rel xs else abs xs
@@ -193,7 +203,8 @@ let basename p =
      basename of [root]. *)
   match basename_opt p with
   | Some x -> x
-  | None -> if is_relative p then "." else "/"
+  | None ->
+    if is_relative p then Filename.current_dir_name else Filename.dir_sep
 ;;
 
 let extension p =
