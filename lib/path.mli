@@ -14,7 +14,12 @@
 
     Unlike {{:https://erratique.ch/software/fpath} Fpath}, there is no
     distinction (in terms of representation) between directories and
-    files. *)
+    files.
+
+    The API is generally pure, which explains why when we talk about
+    ‘changing a path’, moving it, etc., we are referring to
+    calculating a new path; {b no operations are performed on the
+    disk}. *)
 
 (** {1 Representation} *)
 
@@ -50,6 +55,35 @@ val basename : t -> string
 (** [basename_opt p] returns the basename of [p]. The basename of
     [root] and [cwd] is [None]. *)
 val basename_opt : t -> string option
+
+(** {1 Extension}
+
+    Dealing with file extensions. Since the library does not assume
+    whether a file is a file or a directory, the functions generally
+    work.
+
+    An extension (returned) is always prefixed with a ["."]. *)
+
+(** [extension p] returns the extension for the given path [p]. If the
+    path has no extension, it returns an empty string. *)
+val extension : t -> string
+
+(** [extension_opt p] is like {!val:extension} but wrap the result
+    into an option. So if a path has no extension, it returns
+    [None]. *)
+val extension_opt : t -> string option
+
+(** [compound_extension p] returns the list of {i compound extension}
+    for the given path [p]. *)
+val compound_extension : t -> string list
+
+(** [has_extension ext p] returns [true] if the path [p] has the
+    extension [ext]. (It works on {b compound extension})*)
+val has_extension : string -> t -> bool
+
+(** [has_any_extension exts p] returns [true] if the path [p] has one of the
+    extensions in [exts]. (It works on {b compound extension})*)
+val has_any_extension : string list -> t -> bool
 
 (** {1 Predicates}
 

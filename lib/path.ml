@@ -46,6 +46,16 @@ let split_on_chars pred s =
   String.sub s 0 !j :: !r
 ;;
 
+let list_has_suffix ~equal ~suffix list =
+  let rec aux suffix list =
+    match suffix, list with
+    | [], _ -> true
+    | _, [] -> false
+    | sx :: sxs, lx :: lxs -> if equal sx lx then aux sxs lxs else false
+  in
+  aux (List.rev suffix) (List.rev list)
+;;
+
 let split_separator =
   split_on_chars (function
     | '/' | '\\' ->
@@ -56,6 +66,8 @@ let split_separator =
       true
     | _ -> false)
 ;;
+
+let split_dot = split_on_chars (Char.equal '.')
 
 let from_fragment_list ?(prefix = []) fragments =
   (* NOTE: In other experiments, paths are stored in reverse order to
@@ -176,4 +188,73 @@ let basename p =
   match basename_opt p with
   | Some x -> x
   | None -> if is_relative p then "." else "/"
+;;
+
+let extension p =
+  match basename_opt p with
+  | Some x -> Filename.extension x
+  | None -> ""
+;;
+
+let extension_opt p =
+  match extension p with
+  | "" -> None
+  | ext -> Some ext
+;;
+
+let compound_extension p =
+  match basename_opt p with
+  | Some name ->
+    (match split_dot name with
+     | [] -> []
+     | _ :: extensions ->
+       (* NOTE: Mimics the behaviour of Python's
+          {{:https://docs.python.org/3/library/pathlib.html} pathlib}}
+          library.*)
+       List.map (fun x -> "." ^ x) extensions)
+  | None -> []
+;;
+
+let make_extension
+  =
+  (* MAYBE: I am replicating the behaviour of Yocaml.Path, which
+     allows you to add {if necessary} the missing leading
+     dot. However, I am not sure that this is really the right
+     approach. *)
+  function
+  | "" -> ""
+  | "." -> ""
+  | ext when String.length ext > 1 && Char.equal ext.[0] '.' -> ext
+  | ext -> "." ^ ext
+;;
+
+let has_extension ext path =
+  let ext = make_extension ext in
+  match split_dot ext with
+  | [] ->
+    (* HACK: In fact, this case is probably never reached because
+       split enforces a non-empty list invariant.*)
+    true
+  | [ ""; _ ] | [ _ ] ->
+    (* We take turns on a function that ONLY observes the
+       extension. *)
+    let path_ext = extension path in
+    String.equal path_ext ext
+  | "" :: ext | ext ->
+    (* We relay on compound_extension for checking extension inclusion
+       (and we need to remove the first empty slot). *)
+    let path_ext = compound_extension path in
+    list_has_suffix
+      ~equal:(fun s x ->
+        (* KLUDGE: We need to rebuild the extension, adding a
+           leading dot. *)
+        let s = "." ^ s in
+        String.equal s x)
+      ~suffix:ext
+      path_ext
+;;
+
+let has_any_extension exts p =
+  (* NOTE: In YOCaml, this function was named [one_of_extension]. *)
+  List.exists (fun ext -> has_extension ext p) exts
 ;;
