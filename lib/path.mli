@@ -65,6 +65,22 @@ val append : t -> string list -> t
     movement from path [source] to path [into].*)
 val move : into:t -> t -> t
 
+(** [rename ?preserve_extension ~new_name p] calculate a new name for
+    the given path [p]. The flag [preserve_extension] describes a
+    strategy for preserving the extension of the source [p]. If it is
+    not passed, the extension is ignored.
+
+    - [`Ext] preserves the extension of the source (see
+      {!val:extension})
+
+    - [`Compound] preserves the extension of the source (see
+      {!val:compound_extension}) *)
+val rename
+  :  ?preserve_extension:[ `Compound | `Ext ]
+  -> new_name:string
+  -> t
+  -> t
+
 (** {1 Extension}
 
     Dealing with file extensions. Since the library does not assume

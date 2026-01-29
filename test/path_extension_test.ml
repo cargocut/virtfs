@@ -190,3 +190,8 @@ let%expect_test "add_extension - on cwd it should return cwd" =
   Path.rel [] |> Path.add_extension "tpl.html" |> dump_path;
   [%expect {| ./ |}]
 ;;
+
+let%expect_test "change_extension" =
+  Path.rel [ "index.php" ] |> Path.change_extension "ml" |> dump_path;
+  [%expect {| ./index.ml |}]
+;;

@@ -332,3 +332,23 @@ let move ~into source =
     source
   | Some x -> append into [ x ]
 ;;
+
+let basename_rename ?preserve_extension new_name s =
+  match preserve_extension with
+  | None -> new_name
+  | Some `Ext ->
+    let ext = Filename.extension s in
+    if String.ends_with ~suffix:ext new_name then new_name else new_name ^ ext
+  | Some `Compound ->
+    let ext = s |> basename_compound_extension |> String.concat "" in
+    if String.ends_with ~suffix:ext new_name then new_name else new_name ^ ext
+;;
+
+let rename ?preserve_extension ~new_name source =
+  match basename_opt source with
+  | None ->
+    (* KLUDGE: Another uncertain workaround in case of root. *)
+    append source [ new_name ]
+  | Some _ ->
+    update_basename (basename_rename ?preserve_extension new_name) source
+;;
