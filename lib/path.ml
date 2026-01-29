@@ -114,6 +114,15 @@ let abs fragments =
 ;;
 
 let rel fragments = Relative (from_fragment_list fragments)
+
+let append p fragments =
+  (* NOTE: We apply [from_fragment_list] on the cat of [xs] and
+     [fragment] for takind advantage of resolution. *)
+  match p with
+  | Relative prefix -> Relative (from_fragment_list ~prefix fragments)
+  | Absolute prefix -> Absolute (from_fragment_list ~prefix fragments)
+;;
+
 let cwd = Relative []
 let root = Absolute []
 
@@ -313,3 +322,13 @@ let replace_extension ?kind ext =
 ;;
 
 let change_extension = replace_extension
+
+let move ~into source =
+  match basename_opt source with
+  | None ->
+    (* KLUDGE: Urg, YOCaml's behaviour of returning the target if the
+       source cannot be moved ([root] or [cwd]) seems strange to me,
+       so I prefer to send the source.*)
+    source
+  | Some x -> append into [ x ]
+;;

@@ -17,7 +17,7 @@
     files.
 
     The API is generally pure, which explains why when we talk about
-    ‘changing a path’, moving it, etc., we are referring to
+    "changing a path", moving it, etc., we are referring to
     calculating a new path; {b no operations are performed on the
     disk}. *)
 
@@ -40,9 +40,7 @@ val root : t
 (** [cwd] is the current working directory ["./"]. *)
 val cwd : t
 
-(** {1 Manipulation of path}
-
-    Manipulation/movement and path modifications. *)
+(** {1 Manipulation of path} *)
 
 (** [dirname p] returns the parent of [p]. The parent of [root] is
     [root] and the parent of [cwd] is ["../"]. *)
@@ -55,6 +53,17 @@ val basename : t -> string
 (** [basename_opt p] returns the basename of [p]. The basename of
     [root] and [cwd] is [None]. *)
 val basename_opt : t -> string option
+
+(** {1 Path relocation}
+
+    Set of functions that enable the description of path movements. *)
+
+(** [append p xs] append [xs] at the end of the given path [p]. *)
+val append : t -> string list -> t
+
+(** [move ~into source] calculate the path corresponding to the
+    movement from path [source] to path [into].*)
+val move : into:t -> t -> t
 
 (** {1 Extension}
 

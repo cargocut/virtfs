@@ -3,9 +3,6 @@
 
    SPDX-License-Identifier: BSD-3-Clause *)
 
-(* Essentially path creation tests and the public API serving as a
-   safeguard. *)
-
 open Test_util
 
 let%expect_test "to_string for [cwd]" =
@@ -263,4 +260,22 @@ let%expect_test "basename of a relative path" =
 let%expect_test "basename of a relative path with resolution" =
   Path.(rel [ ".."; ".." ] |> basename) |> print_endline;
   [%expect {| .. |}]
+;;
+
+let%expect_test "append" =
+  let a = Path.rel [ "foo"; "bar"; "baz" ] in
+  [] |> Path.append a |> dump_path;
+  [%expect {| ./foo/bar/baz |}]
+;;
+
+let%expect_test "append" =
+  let a = Path.rel [ "foo"; "bar"; "baz" ] in
+  [ "foobar"; "foobaz" ] |> Path.append a |> dump_path;
+  [%expect {| ./foo/bar/baz/foobar/foobaz |}]
+;;
+
+let%expect_test "append with shared resolution" =
+  let a = Path.rel [ "foo"; "bar"; "baz" ] in
+  [ ".."; "foo"; ".."; ".." ] |> Path.append a |> dump_path;
+  [%expect {| ./foo |}]
 ;;

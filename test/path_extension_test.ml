@@ -3,8 +3,6 @@
 
    SPDX-License-Identifier: BSD-3-Clause *)
 
-(* Tests relating to the processing of extensions. *)
-
 open Test_util
 
 let%expect_test "regular [extension] usage" =

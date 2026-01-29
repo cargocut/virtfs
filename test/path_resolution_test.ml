@@ -3,8 +3,6 @@
 
    SPDX-License-Identifier: BSD-3-Clause *)
 
-(* Accurate and described path resolution tests. *)
-
 open Test_util
 
 let%expect_test
