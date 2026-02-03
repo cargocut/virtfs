@@ -1,3 +1,7 @@
 (library
  (name virtfs)
  (public_name virtfs))
+
+(mdx
+ (files *.mli)
+ (libraries virtfs))

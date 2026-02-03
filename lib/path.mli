@@ -65,22 +65,24 @@ val append : t -> string list -> t
     movement from path [source] to path [into].*)
 val move : into:t -> t -> t
 
-(** [relocate ?strategy ~into source] looks like {!val:move} put it
-    will move the {b full path} of source instead of the basename. The
-    way that source is merged is defined by [strategy].
+(** [relocate ?strategy ?ignore_kind ~into source] is like {!val:move},
+    but relocates the full [source] path instead of only its basename.
 
-    - [`Merge], the default one, will try to inject [source] inside
-      [into]. For example in
-      [relocate (rel ["foo"; "bar"; "baz"]) (rel ["bar"; "index.md"])],
-      [index.md] will be injected at the level of
-      ["foo/bar"] so it will result to ["foo/bar/index.md"]
+    With [`Merge] (default), overlapping suffixes are merged:
 
-    - [`Force] always expand the full path [source] into [into].
+    {@ocaml[
+      # open Virtfs.Path ;;
 
-    Usually, if [into] and [source] has different kind ([Relative] VS
-    [Absolute] it apply [force]. But if the [ignore_kind] is set to
-    [true], the function use [into] as reference, it doe not affect
-    [`Force] strategy). *)
+      # (rel [ "bar"; "index.md" ])
+        |> relocate ~into:(rel [ "foo"; "bar"; "baz" ])
+        |> to_string ;;
+      - : string = "./foo/bar/index.md"
+    ]}
+
+    With [`Force], [source] is appended as-is into [into].
+
+    If [into] and [source] have different kinds ([Relative] vs [Absolute]),
+    [`Force] is applied unless [ignore_kind] is [true]. *)
 val relocate
   :  ?strategy:[ `Merge | `Force ]
   -> ?ignore_kind:bool
