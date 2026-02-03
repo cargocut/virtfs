@@ -65,6 +65,35 @@ val append : t -> string list -> t
     movement from path [source] to path [into].*)
 val move : into:t -> t -> t
 
+(** [relocate ?strategy ~into source] looks like {!val:move} put it
+    will move the {b full path} of source instead of the basename. The
+    way that source is merged is defined by [strategy].
+
+    - [`Merge], the default one, will try to inject [source] inside
+      [into]. For example in
+      [relocate (rel ["foo"; "bar"; "baz"]) (rel ["bar"; "index.md"])],
+      [index.md] will be injected at the level of
+      ["foo/bar"] so it will result to ["foo/bar/index.md"]
+
+    - [`Force] always expand the full path [source] into [into].
+
+    Usually, if [into] and [source] has different kind ([Relative] VS
+    [Absolute] it apply [force]. But if the [ignore_kind] is set to
+    [true], the function use [into] as reference, it doe not affect
+    [`Force] strategy). *)
+val relocate
+  :  ?strategy:[ `Merge | `Force ]
+  -> ?ignore_kind:bool
+  -> into:t
+  -> t
+  -> t
+
+(** [concat] is {!val:relocate} with [force] strategy. *)
+val concat : into:t -> t -> t
+
+(** [graft] is {!val:relocate} with [merge] strategy. *)
+val graft : ?ignore_kind:bool -> into:t -> t -> t
+
 (** [rename ?preserve_extension ~new_name p] calculate a new name for
     the given path [p]. The flag [preserve_extension] describes a
     strategy for preserving the extension of the source [p]. If it is

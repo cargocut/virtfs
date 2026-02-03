@@ -44,3 +44,107 @@ let%expect_test "rename with extension preservation" =
   rename ~preserve_extension:`Compound ~new_name source |> dump_path;
   [%expect {| ./foo/bar/renamed-document.tpl.html |}]
 ;;
+
+let%expect_test "relocate with different path kind" =
+  let open Path in
+  let into = Path.abs [ "foo"; "bar" ]
+  and source = Path.rel [ "foo"; "bar"; "index.md" ] in
+  relocate ~into source |> dump_path;
+  [%expect {| /foo/bar/foo/bar/index.md |}]
+;;
+
+let%expect_test "relocate with different path kind" =
+  let open Path in
+  let into = Path.rel [ "foo"; "bar" ]
+  and source = Path.abs [ "foo"; "bar"; "index.md" ] in
+  relocate ~into source |> dump_path;
+  [%expect {| ./foo/bar/foo/bar/index.md |}]
+;;
+
+let%expect_test "relocate with same path kind" =
+  let open Path in
+  let into = Path.abs [ "foo"; "bar" ]
+  and source = Path.abs [ "foo"; "bar"; "index.md" ] in
+  relocate ~into source |> dump_path;
+  [%expect {| /foo/bar/index.md |}]
+;;
+
+let%expect_test "relocate with same path kind" =
+  let open Path in
+  let into = Path.rel [ "foo"; "bar" ]
+  and source = Path.rel [ "foo"; "bar"; "index.md" ] in
+  relocate ~into source |> dump_path;
+  [%expect {| ./foo/bar/index.md |}]
+;;
+
+let%expect_test "relocate with same path kind" =
+  let open Path in
+  let into = Path.rel [ "foo"; "bar" ]
+  and source = Path.rel [ "foo"; "bar"; ".."; "index.md" ] in
+  relocate ~into source |> dump_path;
+  [%expect {| ./foo/index.md |}]
+;;
+
+let%expect_test "Force relocation" =
+  let open Path in
+  let into = Path.abs [ "foo"; "bar" ]
+  and source = Path.abs [ "foo"; "bar"; "index.md" ] in
+  relocate ~strategy:`Force ~into source |> dump_path;
+  [%expect {| /foo/bar/foo/bar/index.md |}]
+;;
+
+let%expect_test "Inject relocation" =
+  let open Path in
+  let into = Path.rel [ "foo"; "bar" ]
+  and source = Path.rel [ "bar"; "index.md" ] in
+  relocate ~into source |> dump_path;
+  [%expect {| ./foo/bar/index.md |}]
+;;
+
+let%expect_test "Inject relocation" =
+  let open Path in
+  let into = Path.rel [ "foo"; "bar"; "baz" ]
+  and source = Path.rel [ "bar"; "index.md" ] in
+  relocate ~into source |> dump_path;
+  [%expect {| ./foo/bar/index.md |}]
+;;
+
+let%expect_test "Inject relocation" =
+  let open Path in
+  let into = Path.rel [ "foo"; "bar"; "baz"; "foobar"; "a"; "b"; "c" ]
+  and source = Path.rel [ "foobar"; "a"; "index.md" ] in
+  relocate ~into source |> dump_path;
+  [%expect {| ./foo/bar/baz/foobar/a/index.md |}]
+;;
+
+let%expect_test "Inject relocation" =
+  let open Path in
+  let into = Path.rel [ "foo"; "bar"; "baz"; "foobar"; "a"; "b"; "c" ]
+  and source = Path.rel [ "d"; "a"; "index.md" ] in
+  relocate ~into source |> dump_path;
+  [%expect {| ./foo/bar/baz/foobar/a/b/c/d/a/index.md |}]
+;;
+
+let%expect_test "Inject relocation" =
+  let open Path in
+  let into = Path.rel [ "foo"; "bar"; "baz" ]
+  and source = Path.rel [ "bar"; "foobar"; "index.md" ] in
+  relocate ~into source |> dump_path;
+  [%expect {| ./foo/bar/foobar/index.md |}]
+;;
+
+let%expect_test "Inject relocation" =
+  let open Path in
+  let into = Path.rel [ "foo"; "bar"; "baz" ]
+  and source = Path.rel [ "bar"; "index.md" ] in
+  relocate ~into source |> dump_path;
+  [%expect {| ./foo/bar/index.md |}]
+;;
+
+let%expect_test "relocate with different path kind (with ignore)" =
+  let open Path in
+  let into = Path.rel [ "foo"; "bar" ]
+  and source = Path.abs [ "foo"; "bar"; "index.md" ] in
+  relocate ~ignore_kind:true ~into source |> dump_path;
+  [%expect {| ./foo/bar/index.md |}]
+;;

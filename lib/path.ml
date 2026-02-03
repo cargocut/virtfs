@@ -56,6 +56,17 @@ let list_has_suffix ~equal ~suffix list =
   aux (List.rev suffix) (List.rev list)
 ;;
 
+let inject_into_list ~equal into = function
+  | [] -> into
+  | x :: xs ->
+    let rec aux acc = function
+      | [] -> List.rev_append acc (x :: xs)
+      | y :: ys when not (equal x y) -> aux (y :: acc) ys
+      | _ -> List.rev_append acc (x :: xs)
+    in
+    aux [] into
+;;
+
 let remove_string_suffix ~suffix str =
   if String.ends_with ~suffix str
   then String.sub str 0 (String.length str - String.length suffix)
@@ -332,6 +343,30 @@ let move ~into source =
     source
   | Some x -> append into [ x ]
 ;;
+
+let relocate_force into source =
+  let (Relative xs | Absolute xs) = source in
+  append into xs
+;;
+
+let relocate_inject ignore_kind into source =
+  let equal = String.equal in
+  match into, source with
+  | Relative x, Relative y -> rel (inject_into_list ~equal x y)
+  | Absolute x, Absolute y -> abs (inject_into_list ~equal x y)
+  | Relative x, Absolute y when ignore_kind -> rel (inject_into_list ~equal x y)
+  | Absolute x, Relative y when ignore_kind -> abs (inject_into_list ~equal x y)
+  | _ -> relocate_force into source
+;;
+
+let relocate ?(strategy = `Merge) ?(ignore_kind = false) ~into source =
+  match strategy with
+  | `Force -> relocate_force into source
+  | `Merge -> relocate_inject ignore_kind into source
+;;
+
+let concat = relocate ~ignore_kind:true ~strategy:`Force
+let graft ?ignore_kind = relocate ?ignore_kind ~strategy:`Merge
 
 let basename_rename ?preserve_extension new_name s =
   match preserve_extension with
