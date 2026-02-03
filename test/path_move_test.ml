@@ -148,3 +148,35 @@ let%expect_test "relocate with different path kind (with ignore)" =
   relocate ~ignore_kind:true ~into source |> dump_path;
   [%expect {| ./foo/bar/index.md |}]
 ;;
+
+let%expect_test "relocate with different path kind (with ignore)" =
+  let open Path in
+  let into = Path.rel [ "foo"; "bar" ]
+  and source = Path.abs [ "foo"; "bar"; ".."; "index.md" ] in
+  relocate ~ignore_kind:true ~into source |> dump_path;
+  [%expect {| ./foo/index.md |}]
+;;
+
+let%expect_test "relocate with resolution" =
+  let open Path in
+  let into = Path.rel [ "foo"; "bar"; "test" ]
+  and source = Path.rel [ ".."; ".."; "index.md" ] in
+  relocate ~ignore_kind:true ~into source |> dump_path;
+  [%expect {| ./foo/index.md |}]
+;;
+
+let%expect_test "relocate with resolution - 2" =
+  let open Path in
+  let into = Path.rel [ "foo"; "bar"; "test" ]
+  and source = Path.rel [ ".."; ".."; ".."; "index.md" ] in
+  relocate ~ignore_kind:true ~into source |> dump_path;
+  [%expect {| ./index.md |}]
+;;
+
+let%expect_test "relocate with resolution - 3" =
+  let open Path in
+  let into = Path.rel [ "foo"; "bar"; "test" ]
+  and source = Path.rel [ ".."; ".."; ".."; ".."; "index.md" ] in
+  relocate ~ignore_kind:true ~into source |> dump_path;
+  [%expect {| ./../index.md |}]
+;;
