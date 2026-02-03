@@ -207,3 +207,23 @@ val fragments : t -> string list
 
 (** [to_list p] is {!val:fragments}*)
 val to_list : t -> string list
+
+(** {1 Infix Operators}
+
+    A set of infix operators. *)
+
+module Infix : sig
+  (** [p ++ xs] is an infix version of {!val:append}. *)
+  val ( ++ ) : t -> string list -> t
+
+  (** [p / s] adds [s] at the end of [p]. *)
+  val ( / ) : t -> string -> t
+
+  (** [~/["foo"; "bar"]] is [rel ["foo"; "bar"]]. See {!val:rel}. *)
+  val ( ~/ ) : string list -> t
+
+  (** [^/["foo"; "bar"]] is [abs ["foo"; "bar"]]. See {!val:abs}. *)
+  val ( ^/ ) : string list -> t
+end
+
+include module type of Infix (** @inline *)

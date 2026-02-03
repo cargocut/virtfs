@@ -387,3 +387,12 @@ let rename ?preserve_extension ~new_name source =
   | Some _ ->
     update_basename (basename_rename ?preserve_extension new_name) source
 ;;
+
+module Infix = struct
+  let ( ++ ) = append
+  let ( / ) path f = append path [ f ]
+  let ( ~/ ) = rel
+  let ( ^/ ) = abs
+end
+
+include Infix
