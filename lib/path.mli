@@ -191,6 +191,10 @@ val compare : t -> t -> int
 
 (** {1 Conversion} *)
 
+(** [to_filename p] returns the filename representation of the path
+    [p] using [Filename] constants. *)
+val to_filename : t -> string
+
 (** [to_string p] returns the representation of the path [p]. *)
 val to_string : t -> string
 

@@ -17,8 +17,36 @@ let equal a b =
 let to_string = function
   | Relative [] -> "./"
   | Absolute [] -> "/"
-  | Relative xs -> String.concat Filename.dir_sep ("." :: xs)
-  | Absolute xs -> String.concat Filename.dir_sep ("" :: xs)
+  | Relative xs -> String.concat "/" ("." :: xs)
+  | Absolute xs -> String.concat "/" ("" :: xs)
+;;
+
+let concat_with ~sep f l =
+  let buf = Buffer.create 256 in
+  let () =
+    List.iteri
+      (fun i x ->
+         let sep = if Int.equal i 0 then "" else sep in
+         Buffer.add_string buf sep;
+         Buffer.add_string buf (f x))
+      l
+  in
+  Buffer.contents buf
+;;
+
+let to_filename p =
+  let xs =
+    match p with
+    | Relative xs -> "." :: xs
+    | Absolute xs -> "" :: xs
+  in
+  concat_with
+    ~sep:Filename.dir_sep
+    (function
+      | "." -> Filename.current_dir_name
+      | ".." -> Filename.parent_dir_name
+      | s -> s)
+    xs
 ;;
 
 let compare a b =
@@ -88,6 +116,16 @@ let split_separator =
 
 let split_dot = split_on_chars (Char.equal '.')
 
+let is_parent_dir = function
+  | ".." -> true
+  | c -> String.equal c Filename.parent_dir_name
+;;
+
+let is_current_dir = function
+  | "." -> true
+  | c -> String.equal c Filename.current_dir_name
+;;
+
 let from_fragment_list ?(prefix = []) fragments =
   (* NOTE: In other experiments, paths are stored in reverse order to
      facilitate queue processing: however, it would appear that more
@@ -97,11 +135,14 @@ let from_fragment_list ?(prefix = []) fragments =
   let rec aux from curr fragments =
     (* NOTE: Remove [".."] and ["."]  where possible.*)
     match from, curr, fragments with
-    | (([] | ".." :: _) as fs), ".." :: ps, xs ->
+    | (([] | ".." :: _) as fs), b :: ps, xs when is_parent_dir b ->
       (* Deal with sequence of leading [".."]*)
       aux (".." :: fs) ps xs
-    | fs, "." :: ps, xs | _ :: fs, ".." :: ps, xs ->
-      (* Remove ["."] or [".."] (and collapse). *)
+    | fs, c :: ps, xs when is_current_dir c ->
+      (* Remove ["."] (and collapse). *)
+      aux fs ps xs
+    | _ :: fs, c :: ps, xs when is_parent_dir c ->
+      (* Remove [".."] (and collapse). *)
       aux fs ps xs
     | fs, x :: xs, ps ->
       (* Move the segment to the analyzed part. *)

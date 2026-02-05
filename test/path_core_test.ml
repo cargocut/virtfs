@@ -279,3 +279,15 @@ let%expect_test "append with shared resolution" =
   [ ".."; "foo"; ".."; ".." ] |> Path.append a |> dump_path;
   [%expect {| ./foo |}]
 ;;
+
+let%expect_test "to_filename" =
+  Path.rel [ "foo"; ".."; ".."; "baz" ] |> Path.to_filename |> print_endline;
+  [%expect {| ./../baz |}]
+;;
+
+let%expect_test "to_filename - 2" =
+  Path.rel [ "foo"; ".."; ".."; "baz\\index.png" ]
+  |> Path.to_filename
+  |> print_endline;
+  [%expect {| ./../baz/index.png |}]
+;;
