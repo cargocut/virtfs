@@ -3,6 +3,10 @@
  (inline_tests)
  (flags (:standard) -open Virtfs)
  (libraries virtfs)
- (private_modules path_core_test path_resolution_test)
+ (private_modules
+  path_core_test
+  path_resolution_test
+  path_move_test
+  yocaml_www_resolver)
  (preprocess
   (pps ppx_expect)))

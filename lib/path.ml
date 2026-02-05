@@ -1,4 +1,4 @@
-(* Copyright (c) 2026, Cargocut and the Virtfs developpers.
+(* Copyright (c) 2026, Cargocut and the Virtfs developers.
    All rights reserved.
 
    SPDX-License-Identifier: BSD-3-Clause *)
@@ -66,6 +66,8 @@ let inject_into_list ~equal into = function
     in
     aux [] into
 ;;
+
+(* let list_trim_prefix ~equal ~prefix list = *)
 
 let remove_string_suffix ~suffix str =
   if String.ends_with ~suffix str
