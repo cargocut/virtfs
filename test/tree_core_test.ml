@@ -1,0 +1,98 @@
+(* Copyright (c) 2026, Cargocut and the Virtfs developers.
+   All rights reserved.
+
+   SPDX-License-Identifier: BSD-3-Clause *)
+
+let%expect_test "a simple ls" =
+  let fs =
+    let open Tree in
+    make
+      [ dir ~name:"foo" []
+      ; dir ~name:"bar" []
+      ; file ~name:"config.ini" "config file"
+      ]
+  in
+  fs |> Tree.ls |> List.iter print_endline;
+  [%expect
+    {|
+    foo/
+    bar/
+    config.ini
+    |}]
+;;
+
+let%expect_test "a simple ls from root" =
+  let fs =
+    let open Tree in
+    from_root
+      [ dir ~name:"foo" []
+      ; dir ~name:"bar" []
+      ; file ~name:"config.ini" "config file"
+      ]
+  in
+  fs |> Tree.ls |> List.iter print_endline;
+  [%expect {| / |}]
+;;
+
+let%expect_test "a simple ls from cwd" =
+  let fs =
+    let open Tree in
+    from_cwd
+      [ dir ~name:"foo" []
+      ; dir ~name:"bar" []
+      ; file ~name:"config.ini" "config file"
+      ]
+  in
+  fs |> Tree.ls |> List.iter print_endline;
+  [%expect {| ./ |}]
+;;
+
+let%expect_test "a simple tree" =
+  let fs =
+    let open Tree in
+    make
+      [ dir ~name:"foo" []
+      ; dir
+          ~name:"bar"
+          [ dir ~name:"baz" [ file ~name:"index.md" "Hello World" ] ]
+      ; file ~name:"config.ini" "config file"
+      ]
+  in
+  fs |> Tree.tree |> print_endline;
+  [%expect
+    {|
+    └─foo/
+    └─bar/
+      └─baz/
+        └─index.md
+    └─config.ini
+    |}]
+;;
+
+let%expect_test "a simple tree with scope" =
+  let fs =
+    let open Tree in
+    make
+      ~scope:Path.(~/[ "a"; "b"; "c"; "d" ])
+      [ dir ~name:"foo" []
+      ; dir
+          ~name:"bar"
+          [ dir ~name:"baz" [ file ~name:"index.md" "Hello World" ] ]
+      ; file ~name:"config.ini" "config file"
+      ]
+  in
+  fs |> Tree.tree |> print_endline;
+  [%expect
+    {|
+    └─./
+      └─a/
+        └─b/
+          └─c/
+            └─d/
+              └─bar/
+                └─baz/
+                  └─index.md
+              └─foo/
+              └─config.ini
+    |}]
+;;
