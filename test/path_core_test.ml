@@ -291,3 +291,13 @@ let%expect_test "to_filename - 2" =
   |> print_endline;
   [%expect {| ./../baz/index.png |}]
 ;;
+
+let%expect_test "Some annoying behaviour" =
+  Path.of_string "./foo/bar/" |> dump_path;
+  [%expect {| ./foo/bar |}]
+;;
+
+let%expect_test "Some annoying behaviour" =
+  Path.rel [ "./foo/bar/"; ""; "."; "foo/" ] |> dump_path;
+  [%expect {| ./foo/bar/foo |}]
+;;

@@ -144,6 +144,9 @@ let from_fragment_list ?(prefix = []) fragments =
     | _ :: fs, c :: ps, xs when is_parent_dir c ->
       (* Remove [".."] (and collapse). *)
       aux fs ps xs
+    | fs, "" :: ps, xs ->
+      (* Remove empty path (and collapse). *)
+      aux fs ps xs
     | fs, x :: xs, ps ->
       (* Move the segment to the analyzed part. *)
       aux (x :: fs) xs ps
