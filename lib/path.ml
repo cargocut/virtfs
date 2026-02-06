@@ -460,3 +460,12 @@ module Infix = struct
 end
 
 include Infix
+
+module Ord = struct
+  type nonrec t = t
+
+  let compare = compare
+end
+
+module Set = Set.Make (Ord)
+module Map = Map.Make (Ord)

@@ -221,7 +221,7 @@ val of_string : string -> t
     path [p]. *)
 val fragments : t -> string list
 
-(** [to_list p] is {!val:fragments}*)
+(** [to_list p] is {!val:fragments} *)
 val to_list : t -> string list
 
 (** {1 Infix Operators}
@@ -243,3 +243,11 @@ module Infix : sig
 end
 
 include module type of Infix (** @inline *)
+
+(** {1 Set} *)
+
+module Set : Set.S with type elt = t
+
+(** {1 Map} *)
+
+module Map : Map.S with type key = t
