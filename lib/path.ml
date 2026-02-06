@@ -95,7 +95,16 @@ let inject_into_list ~equal into = function
     aux [] into
 ;;
 
-(* let list_trim_prefix ~equal ~prefix list = *)
+let list_trim_prefix ~equal ~prefix list =
+  let rec aux x y =
+    match x, y with
+    | [], ys -> ys
+    | _, [] -> list
+    | x :: xs, y :: ys when equal x y -> aux xs ys
+    | _ -> list
+  in
+  aux prefix list
+;;
 
 let remove_string_suffix ~suffix str =
   if String.ends_with ~suffix str
@@ -409,6 +418,15 @@ let relocate ?(strategy = `Merge) ?(ignore_kind = false) ~into source =
   match strategy with
   | `Force -> relocate_force into source
   | `Merge -> relocate_inject ignore_kind into source
+;;
+
+let trim ?(ignore_kind = false) ~prefix source =
+  match prefix, source, ignore_kind with
+  | Relative prefix, Relative source, _ | Absolute prefix, Relative source, true
+    -> rel (list_trim_prefix ~equal:String.equal ~prefix source)
+  | Absolute prefix, Absolute source, _ | Relative prefix, Absolute source, true
+    -> abs (list_trim_prefix ~equal:String.equal ~prefix source)
+  | _ -> source
 ;;
 
 let concat = relocate ~ignore_kind:true ~strategy:`Force

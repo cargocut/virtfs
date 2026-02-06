@@ -180,3 +180,51 @@ let%expect_test "relocate with resolution - 3" =
   relocate ~ignore_kind:true ~into source |> dump_path;
   [%expect {| ./../index.md |}]
 ;;
+
+let%expect_test "trim prefix" =
+  let open Path in
+  let prefix = abs [ "foo"; "bar"; "baz" ]
+  and source = abs [ "foo"; "bar"; "baz"; "index.md" ] in
+  source |> trim ~prefix |> dump_path;
+  [%expect {| /index.md |}]
+;;
+
+let%expect_test "trim prefix" =
+  let open Path in
+  let prefix = abs [ "foo"; "bar"; "bar" ]
+  and source = abs [ "foo"; "bar"; "baz"; "index.md" ] in
+  source |> trim ~prefix |> dump_path;
+  [%expect {| /foo/bar/baz/index.md |}]
+;;
+
+let%expect_test "trim prefix" =
+  let open Path in
+  let prefix = rel [ "foo"; "bar"; "baz" ]
+  and source = rel [ "foo"; "bar"; "baz"; "index.md" ] in
+  source |> trim ~prefix |> dump_path;
+  [%expect {| ./index.md |}]
+;;
+
+let%expect_test "trim prefix" =
+  let open Path in
+  let prefix = abs [ "foo"; "bar"; "baz" ]
+  and source = rel [ "foo"; "bar"; "baz"; "index.md" ] in
+  source |> trim ~prefix |> dump_path;
+  [%expect {| ./foo/bar/baz/index.md |}]
+;;
+
+let%expect_test "trim prefix" =
+  let open Path in
+  let prefix = abs [ "foo"; "bar"; "baz" ]
+  and source = rel [ "foo"; "bar"; "baz"; "index.md" ] in
+  source |> trim ~ignore_kind:true ~prefix |> dump_path;
+  [%expect {| ./index.md |}]
+;;
+
+let%expect_test "trim prefix" =
+  let open Path in
+  let prefix = rel [ "foo"; "bar"; "baz" ]
+  and source = abs [ "foo"; "bar"; "baz"; "index.md" ] in
+  source |> trim ~ignore_kind:true ~prefix |> dump_path;
+  [%expect {| /index.md |}]
+;;
