@@ -20,3 +20,4 @@ val fetch : 'a t -> Path.t -> 'a item option
 
 (* TODO: Probably to be removed (when the API will be completed). *)
 val content : 'a item -> [ `Content of 'a | `Tree of 'a item list ]
+val name : 'a item -> string

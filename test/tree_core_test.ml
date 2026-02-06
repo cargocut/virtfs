@@ -3,6 +3,17 @@
 
    SPDX-License-Identifier: BSD-3-Clause *)
 
+let fetch fs path =
+  match Tree.fetch fs path with
+  | None -> print_endline (Path.to_filename path ^ ": Not found")
+  | Some item ->
+    let name = Tree.name item in
+    (match Tree.content item with
+     | `Content s -> name ^ ": " ^ s
+     | `Tree xs -> Tree.tree (Tree.make ~scope:path xs))
+    |> print_endline
+;;
+
 let%expect_test "a simple ls" =
   let fs =
     let open Tree in
@@ -95,4 +106,63 @@ let%expect_test "a simple tree with scope" =
               └─foo/
               └─config.ini
     |}]
+;;
+
+let%expect_test "fetch" =
+  let fs =
+    let open Tree in
+    make
+      ~scope:Path.(~/[ "a"; "b"; "c"; "d" ])
+      [ dir ~name:"foo" []
+      ; dir
+          ~name:"bar"
+          [ dir ~name:"baz" [ file ~name:"index.md" "Hello World" ] ]
+      ; file ~name:"config.ini" "config file"
+      ]
+  in
+  Path.(rel [ "a"; "b"; "c"; "d"; "config.ini" ]) |> fetch fs;
+  [%expect {| config.ini: config file |}]
+;;
+
+let%expect_test "fetch" =
+  let fs =
+    let open Tree in
+    make
+      ~scope:Path.(~/[ "a"; "b"; "c"; "d" ])
+      [ dir ~name:"foo" []
+      ; dir
+          ~name:"bar"
+          [ dir ~name:"baz" [ file ~name:"index.md" "Hello World" ] ]
+      ; file ~name:"config.ini" "config file"
+      ]
+  in
+  Path.(rel [ "a"; "b"; "c"; "d"; "bar" ]) |> fetch fs;
+  [%expect
+    {|
+    └─./
+      └─a/
+        └─b/
+          └─c/
+            └─d/
+              └─bar/
+                └─baz/
+                  └─index.md
+    |}]
+;;
+
+let%expect_test "fetch" =
+  let fs =
+    let open Tree in
+    make
+      ~scope:Path.(~/[ "a"; "b"; "c"; "e" ])
+      [ dir ~name:"foo" []
+      ; dir
+          ~name:"bar"
+          [ dir ~name:"baz" [ file ~name:"index.md" "Hello World" ] ]
+      ; file ~name:"config.ini" "config file"
+      ]
+  in
+  Path.(rel [ "a"; "b"; "c"; "d"; "bar" ]) |> fetch fs;
+  [%expect
+    {| ./a/b/c/d/bar: Not found |}]
 ;;

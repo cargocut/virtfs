@@ -77,6 +77,8 @@ let name_to_string = function
   | Directory { name; _ } -> name ^ "/"
 ;;
 
+let name = name_to_string
+
 let has_name ~name:given = function
   | File { name; _ } | Directory { name; _ } -> String.equal name given
 ;;
