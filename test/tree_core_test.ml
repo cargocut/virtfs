@@ -165,3 +165,57 @@ let%expect_test "fetch" =
   Path.(rel [ "a"; "b"; "c"; "d"; "bar" ]) |> fetch fs;
   [%expect {| ./a/b/c/d/bar: Not found |}]
 ;;
+
+let%expect_test "cat on file" =
+  let fs =
+    let open Tree in
+    make
+      ~scope:Path.(~/[ "a"; "b"; "c"; "d" ])
+      [ dir ~name:"foo" []
+      ; dir
+          ~name:"bar"
+          [ dir ~name:"baz" [ file ~name:"index.md" "Hello World" ] ]
+      ; file ~name:"config.ini" "config file"
+      ]
+  in
+  Path.rel [ "a"; "b"; "c"; "d"; "bar"; "baz"; "index.md" ]
+  |> Tree.cat ~to_string:Fun.id fs
+  |> print_endline;
+  [%expect {| Hello World |}]
+;;
+
+let%expect_test "cat on folder" =
+  let fs =
+    let open Tree in
+    make
+      ~scope:Path.(~/[ "a"; "b"; "c"; "d" ])
+      [ dir ~name:"foo" []
+      ; dir
+          ~name:"bar"
+          [ dir ~name:"baz" [ file ~name:"index.md" "Hello World" ] ]
+      ; file ~name:"config.ini" "config file"
+      ]
+  in
+  Path.rel [ "a"; "b"; "c"; "d"; "bar"; "baz" ]
+  |> Tree.cat ~to_string:Fun.id fs
+  |> print_endline;
+  [%expect {| cat: ./a/b/c/d/bar/baz: Is a directory |}]
+;;
+
+let%expect_test "cat on missing element" =
+  let fs =
+    let open Tree in
+    make
+      ~scope:Path.(~/[ "a"; "b"; "c"; "d" ])
+      [ dir ~name:"foo" []
+      ; dir
+          ~name:"bar"
+          [ dir ~name:"baz" [ file ~name:"index.md" "Hello World" ] ]
+      ; file ~name:"config.ini" "config file"
+      ]
+  in
+  Path.rel [ "a"; "b"; "c"; "d"; "bar"; "not-present" ]
+  |> Tree.cat ~to_string:Fun.id fs
+  |> print_endline;
+  [%expect {| cat: ./a/b/c/d/bar/not-present: No such file or directory |}]
+;;

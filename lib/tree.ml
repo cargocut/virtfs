@@ -143,3 +143,14 @@ let tree fs =
   in
   aux 0 "" fs
 ;;
+
+let cat ~to_string fs path =
+  match fetch fs path with
+  | None ->
+    let s = Path.to_string path in
+    "cat: " ^ s ^ ": No such file or directory"
+  | Some (Directory _) ->
+    let s = Path.to_string path in
+    "cat: " ^ s ^ ": Is a directory"
+  | Some (File { content; _ }) -> to_string content
+;;

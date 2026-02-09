@@ -100,5 +100,14 @@ val fetch : ('a, 'metadata) t -> Path.t -> ('a, 'metadata) item option
     As the purpose of the virtual file system is primarily for
     testing, the API provides a collection of inspection tools. *)
 
+(** [ls fs] returns a flat list of strings, equivalent to applying
+    the Unix [ls] command. *)
 val ls : ('a, 'metadata) t -> string list
+
+(** [tree fs] returns a character string that prints the given tree
+    [fs] in tree form, similar to the [tree] command (in [Unix]). *)
 val tree : ('a, 'metadata) t -> string
+
+(** [cat ~to_string fs path] Returns a string that resembles the
+    output of the [cat] command in [Unix] (without concatenation). *)
+val cat : to_string:('a -> string) -> ('a, 'metadata) t -> Path.t -> string
