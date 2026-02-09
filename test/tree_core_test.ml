@@ -9,8 +9,8 @@ let fetch fs path =
   | Some item ->
     let name = Tree.name item in
     (match Tree.content item with
-     | `Content s -> name ^ ": " ^ s
-     | `Tree xs -> Tree.tree (Tree.make ~scope:path xs))
+     | `File s -> name ^ ": " ^ s
+     | `Directory xs -> Tree.tree (Tree.make ~scope:path xs))
     |> print_endline
 ;;
 
@@ -163,6 +163,5 @@ let%expect_test "fetch" =
       ]
   in
   Path.(rel [ "a"; "b"; "c"; "d"; "bar" ]) |> fetch fs;
-  [%expect
-    {| ./a/b/c/d/bar: Not found |}]
+  [%expect {| ./a/b/c/d/bar: Not found |}]
 ;;

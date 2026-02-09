@@ -3,20 +3,25 @@
 
    SPDX-License-Identifier: BSD-3-Clause *)
 
-type 'a t = 'a item list
+type ('a, 'metadata) t = ('a, 'metadata) item list
 
-and 'a elt =
+and ('a, 'metadata) elt =
   { name : string
   ; content : 'a
+  ; metadata : 'metadata option
   }
 
-and 'a item =
-  | File of 'a elt
-  | Directory of 'a t elt
+and ('a, 'metadata) item =
+  | File of ('a, 'metadata) elt
+  | Directory of (('a, 'metadata) t, 'metadata) elt
 
 let content = function
-  | File { content; _ } -> `Content content
-  | Directory { content; _ } -> `Tree content
+  | File { content; _ } -> `File content
+  | Directory { content; _ } -> `Directory content
+;;
+
+let metadata = function
+  | File { metadata; _ } | Directory { metadata; _ } -> metadata
 ;;
 
 let is_file = function
@@ -45,28 +50,32 @@ let compare_item a b =
 (* HACK: To ensure that trees are ordered consistently.*)
 let sort_items xs = List.sort_uniq compare_item xs
 
-let dir ~name children =
+let dir ?metadata ~name children =
   let content = sort_items children in
-  Directory { name; content }
+  Directory { name; content; metadata }
 ;;
 
 let path_to_list p =
-  let prefix = if Path.is_absolute p then "" else "."
+  let prefix, f = if Path.is_absolute p then "", Path.abs else ".", Path.rel
   and fragments = Path.to_list p in
-  prefix :: fragments
+  f, prefix :: fragments
 ;;
 
-let file ~name content = File { name; content }
+let file ?metadata ~name content = File { name; content; metadata }
 
-let make ?scope list =
+let make ?(scope_metadata = fun _ -> None) ?scope list =
   match scope with
   | None -> list
   | Some scope ->
-    let rec aux = function
+    let rec aux s = function
       | [] -> list
-      | name :: xs -> [ dir ~name (aux xs) ]
+      | name :: xs ->
+        let s = Path.(s / name) in
+        let metadata = scope_metadata s in
+        [ dir ?metadata ~name (aux s xs) ]
     in
-    aux (path_to_list scope)
+    let p_root, l = path_to_list scope in
+    aux (p_root []) l
 ;;
 
 let from_root list = make ~scope:Path.root list
@@ -84,7 +93,7 @@ let has_name ~name:given = function
 ;;
 
 let fetch fs path =
-  let path = path_to_list path in
+  let _, path = path_to_list path in
   let rec aux fs path =
     match fs, path with
     | x :: xs, [ name ] ->
