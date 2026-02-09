@@ -95,6 +95,28 @@ val metadata : ('a, 'metadata) item -> 'metadata option
 
 val fetch : ('a, 'metadata) t -> Path.t -> ('a, 'metadata) item option
 
+(** [update fs path callback] generic function to modify the filetree,
+    it is the [callback] function (returning an option) that describes
+    whether the file should be created or deleted. *)
+val update
+  :  ('a, 'metadata) t
+  -> Path.t
+  -> (previous:('a, 'metadata) item option
+      -> path:Path.t
+      -> ('a, 'metadata) item option)
+  -> ('a, 'metadata) t
+
+(** [touch fs path ?metadata content] returns a new filesystem where,
+    if the target exists, [if_exists] is applied; otherwise, a file is
+    created. *)
+val touch
+  :  ('a, 'metadata) t
+  -> Path.t
+  -> ?if_exists:(('a, 'metadata) item -> ('a, 'metadata) item)
+  -> ?metadata:'metadata
+  -> 'a
+  -> ('a, 'metadata) t
+
 (** {1 Misc}
 
     As the purpose of the virtual file system is primarily for

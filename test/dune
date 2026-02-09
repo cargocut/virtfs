@@ -8,6 +8,7 @@
   path_resolution_test
   path_move_test
   yocaml_www_resolver
-  tree_core_test)
+  tree_core_test
+  tree_update_test)
  (preprocess
   (pps ppx_expect)))

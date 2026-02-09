@@ -118,6 +118,85 @@ let fetch fs path =
   aux fs path
 ;;
 
+let fold_callback acc
+  =
+  (* HACK: Ensure the order preservation after inserting an
+     element. *)
+  function
+  | None -> sort_items acc
+  | Some x -> sort_items (x :: acc)
+;;
+
+(* TODO: msp, expand tree in a "valid way" for dealing with parent. *)
+let _expand_tree fs path =
+  (* Expands a tree based on a path, if the path is relative *)
+  if Path.is_absolute path
+  then
+    (* If the path is absolute, we can't expand the tree. *)
+    fs, snd (path_to_list path)
+  else assert false
+;;
+
+let update fs in_path callback =
+  (* NOTE: The function essentially comes from the implementation of
+     [Kohai] with support for ... tree expansion.*)
+  let _, path = path_to_list in_path in
+  let rec aux acc fs path =
+    match fs, path with
+    | [], [] ->
+      (* We have gone through the entire tree, and the target does not
+         exist, so we can create it where we are (maintained by
+         [acc]). *)
+      callback ~previous:None ~path:in_path |> fold_callback acc
+    | item :: fs_xs, [ name ] ->
+      (* We crossed the path. *)
+      if has_name ~name item
+      then (
+        (* If the item has the correct name, we apply the callback. *)
+        let new_acc = acc @ fs_xs in
+        callback
+          ~previous:(Some item)
+            (* KLUDGE: surprinsingly, [~previous:item] does not
+               works. (For high order reason I guess) *)
+          ~path:in_path
+        |> fold_callback new_acc)
+      else
+        (* The file does not have the correct name; we must continue
+           traversing. *)
+        aux (item :: acc) fs_xs [ name ]
+    | ( (Directory { metadata; content; name = dirname } as cdir) :: fs_xs
+      , name :: xs ) ->
+      (* We arrive in a directory and the path is not complete. *)
+      if has_name ~name cdir
+      then (
+        (* The item has the right name, so we can dive into the
+           crossing. *)
+        let new_dir = dir ?metadata ~name:dirname (aux [] content xs) in
+        new_dir :: (acc @ fs_xs) |> sort_items)
+      else
+        (* The name is invalid, so we continue browsing the current
+           directory. *)
+        aux (cdir :: acc) fs_xs path
+    | [], name :: path_xs ->
+      (* We need continue to create a tree structure. *)
+      let new_dir = dir ~name (aux [] [] path_xs) in
+      new_dir :: acc |> sort_items
+    | x :: fs_xs, path ->
+      (* Not in the right position, let's continue the iteration. *)
+      aux (x :: acc) fs_xs path
+  in
+  aux [] fs path
+;;
+
+let touch fs path ?(if_exists = Fun.id) ?metadata content =
+  update fs path (fun ~previous ~path ->
+    match previous with
+    | Some item -> Some (if_exists item)
+    | None ->
+      let name = Path.basename path in
+      Some (file ?metadata ~name content))
+;;
+
 (* OKAY: [ls], [nested_print] and [tree] are essentially the testing
    tool. One could argue that this is leaky abstraction, but since the
    purpose of [Tree] is essentially to provide tools for building unit
