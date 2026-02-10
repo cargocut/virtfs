@@ -3,7 +3,10 @@
 
    SPDX-License-Identifier: BSD-3-Clause *)
 
-type ('a, 'metadata) t = ('a, 'metadata) item list
+type ('a, 'metadata) t =
+  { children : ('a, 'metadata) item list
+  ; scope : Path.t
+  }
 
 and ('a, 'metadata) elt =
   { name : string
@@ -13,7 +16,7 @@ and ('a, 'metadata) elt =
 
 and ('a, 'metadata) item =
   | File of ('a, 'metadata) elt
-  | Directory of (('a, 'metadata) t, 'metadata) elt
+  | Directory of (('a, 'metadata) item list, 'metadata) elt
 
 let content = function
   | File { content; _ } -> `File content
@@ -63,19 +66,17 @@ let path_to_list p =
 
 let file ?metadata ~name content = File { name; content; metadata }
 
-let make ?(scope_metadata = fun _ -> None) ?scope list =
-  match scope with
-  | None -> list
-  | Some scope ->
-    let rec aux s = function
-      | [] -> list
-      | name :: xs ->
-        let s = Path.(s / name) in
-        let metadata = scope_metadata s in
-        [ dir ?metadata ~name (aux s xs) ]
-    in
-    let p_root, l = path_to_list scope in
-    aux (p_root []) l
+let make ?(scope_metadata = fun _ -> None) ~scope list =
+  let rec aux s = function
+    | [] -> list
+    | name :: xs ->
+      let s = Path.(s / name) in
+      let metadata = scope_metadata s in
+      [ dir ?metadata ~name (aux s xs) ]
+  in
+  let p_root, l = path_to_list scope in
+  let children = aux (p_root []) l in
+  { scope; children }
 ;;
 
 let from_root list = make ~scope:Path.root list
@@ -115,7 +116,14 @@ let fetch fs path =
     | _ :: xs, path -> aux xs path
     | [], _ -> None
   in
-  aux fs path
+  aux fs.children path
+;;
+
+let prism ~scope fs =
+  match fetch fs scope with
+  | None -> make ~scope []
+  | Some (File _ as f) -> make ~scope [ f ]
+  | Some (Directory { content; _ }) -> make ~scope content
 ;;
 
 let fold_callback acc
@@ -125,16 +133,6 @@ let fold_callback acc
   function
   | None -> sort_items acc
   | Some x -> sort_items (x :: acc)
-;;
-
-(* TODO: msp, expand tree in a "valid way" for dealing with parent. *)
-let _expand_tree fs path =
-  (* Expands a tree based on a path, if the path is relative *)
-  if Path.is_absolute path
-  then
-    (* If the path is absolute, we can't expand the tree. *)
-    fs, snd (path_to_list path)
-  else assert false
 ;;
 
 let update fs in_path callback =
@@ -185,7 +183,9 @@ let update fs in_path callback =
       (* Not in the right position, let's continue the iteration. *)
       aux (x :: acc) fs_xs path
   in
-  aux [] fs path
+  let children = aux [] fs.children path in
+  let scope = fs.scope in
+  { scope; children }
 ;;
 
 let touch fs path ?(if_exists = Fun.id) ?metadata content =
@@ -202,7 +202,12 @@ let touch fs path ?(if_exists = Fun.id) ?metadata content =
    purpose of [Tree] is essentially to provide tools for building unit
    tests, I'm not bothered by it. *)
 
-let ls fs = fs |> List.map name_to_string
+let ls ?scope fs =
+  match Option.bind scope (fetch fs) with
+  | None -> fs.children |> List.map name_to_string
+  | Some (File _ as f) -> [ name_to_string f ]
+  | Some (Directory { content; _ }) -> List.map name_to_string content
+;;
 
 let nested_print level term =
   let c = String.make (level * 2) ' ' in
@@ -220,7 +225,7 @@ let tree fs =
       let a = aux (succ level) (acc ^ "\n" ^ f) content in
       aux level a xs
   in
-  aux 0 "" fs
+  aux 0 "" fs.children
 ;;
 
 let cat ~to_string fs path =

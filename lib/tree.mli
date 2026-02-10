@@ -34,7 +34,7 @@ type ('a, 'metadata) t
     intermediate directory in the scope.*)
 val make
   :  ?scope_metadata:(Path.t -> 'metadata option)
-  -> ?scope:Path.t
+  -> scope:Path.t
   -> ('a, 'metadata) item list
   -> ('a, 'metadata) t
 
@@ -93,7 +93,11 @@ val metadata : ('a, 'metadata) item -> 'metadata option
 
 (** {1 Operation on Trees} *)
 
+(** [fetch fs path] try to reach the [item] at the position [path]. *)
 val fetch : ('a, 'metadata) t -> Path.t -> ('a, 'metadata) item option
+
+(** [prism fs scope] returns a sub-tree based on a path ([scope]).*)
+val prism : scope:Path.t -> ('a, 'metadata) t -> ('a, 'metadata) t
 
 (** [update fs path callback] generic function to modify the filetree,
     it is the [callback] function (returning an option) that describes
@@ -124,7 +128,7 @@ val touch
 
 (** [ls fs] returns a flat list of strings, equivalent to applying
     the Unix [ls] command. *)
-val ls : ('a, 'metadata) t -> string list
+val ls : ?scope:Path.t -> ('a, 'metadata) t -> string list
 
 (** [tree fs] returns a character string that prints the given tree
     [fs] in tree form, similar to the [tree] command (in [Unix]). *)

@@ -17,17 +17,16 @@ let fetch fs path =
 let%expect_test "a simple ls" =
   let fs =
     let open Tree in
-    make
+    from_root
       [ dir ~name:"foo" []
       ; dir ~name:"bar" []
       ; file ~name:"config.ini" "config file"
       ]
   in
-  fs |> Tree.ls |> List.iter print_endline;
-  [%expect
-    {|
-    foo/
+  fs |> Tree.ls ~scope:Path.root |> List.iter print_endline;
+  [%expect {|
     bar/
+    foo/
     config.ini
     |}]
 ;;
@@ -41,8 +40,12 @@ let%expect_test "a simple ls from root" =
       ; file ~name:"config.ini" "config file"
       ]
   in
-  fs |> Tree.ls |> List.iter print_endline;
-  [%expect {| / |}]
+  fs |> Tree.ls ~scope:Path.root |> List.iter print_endline;
+  [%expect {|
+    bar/
+    foo/
+    config.ini
+    |}]
 ;;
 
 let%expect_test "a simple ls from cwd" =
@@ -54,14 +57,19 @@ let%expect_test "a simple ls from cwd" =
       ; file ~name:"config.ini" "config file"
       ]
   in
-  fs |> Tree.ls |> List.iter print_endline;
-  [%expect {| ./ |}]
+  fs |> Tree.ls ~scope:Path.cwd |> List.iter print_endline;
+  [%expect
+    {|
+    bar/
+    foo/
+    config.ini
+    |}]
 ;;
 
 let%expect_test "a simple tree" =
   let fs =
     let open Tree in
-    make
+    from_root
       [ dir ~name:"foo" []
       ; dir
           ~name:"bar"
@@ -72,11 +80,12 @@ let%expect_test "a simple tree" =
   fs |> Tree.tree |> print_endline;
   [%expect
     {|
-    └─foo/
-    └─bar/
-      └─baz/
-        └─index.md
-    └─config.ini
+    └─/
+      └─bar/
+        └─baz/
+          └─index.md
+      └─foo/
+      └─config.ini
     |}]
 ;;
 
@@ -218,4 +227,29 @@ let%expect_test "cat on missing element" =
   |> Tree.cat ~to_string:Fun.id fs
   |> print_endline;
   [%expect {| cat: ./a/b/c/d/bar/not-present: No such file or directory |}]
+;;
+
+let%expect_test "a simple tree with scope and prism" =
+  let fs =
+    let open Tree in
+    make
+      ~scope:Path.(~/[ "a"; "b" ])
+      [ dir ~name:"foo" []
+      ; dir
+          ~name:"bar"
+          [ dir ~name:"baz" [ file ~name:"index.md" "Hello World" ] ]
+      ; file ~name:"config.ini" "config file"
+      ]
+    |> Tree.prism ~scope:(Path.rel [ "a"; "b"; "bar" ])
+  in
+  fs |> Tree.tree |> print_endline;
+  [%expect
+    {|
+    └─./
+      └─a/
+        └─b/
+          └─bar/
+            └─baz/
+              └─index.md
+    |}]
 ;;
