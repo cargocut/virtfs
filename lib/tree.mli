@@ -121,6 +121,19 @@ val touch
   -> 'a
   -> ('a, 'metadata) t
 
+(** [rm fs path] remove the item by a given [path]. *)
+val rm : ('a, 'metadata) t -> Path.t -> ('a, 'metadata) t
+
+(** [rm_file fs path] remove the file by a given [path]. *)
+val rm_file : ('a, 'metadata) t -> Path.t -> ('a, 'metadata) t
+
+(** [rm_dir fs path] remove the directory by a given [path]. *)
+val rm_dir : ('a, 'metadata) t -> Path.t -> ('a, 'metadata) t
+
+(** [mv fs ~target p] move [p] as [target]. If the [target] exists, or
+    the given [p] does not exists, [fs] remains unchanged. *)
+val mv : ('a, 'metadata) t -> target:Path.t -> Path.t -> ('a, 'metadata) t
+
 (** {1 Misc}
 
     As the purpose of the virtual file system is primarily for

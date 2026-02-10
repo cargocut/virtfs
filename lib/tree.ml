@@ -93,7 +93,14 @@ let has_name ~name:given = function
   | File { name; _ } | Directory { name; _ } -> String.equal name given
 ;;
 
+let resolve_path scope path =
+  if Path.is_absolute scope
+  then Path.resolve ~from:scope path
+  else Path.graft ~into:scope path
+;;
+
 let fetch fs path =
+  let path = resolve_path fs.scope path in
   let _, path = path_to_list path in
   let rec aux fs path =
     match fs, path with
@@ -138,10 +145,11 @@ let fold_callback acc
 let update fs in_path callback =
   (* NOTE: The function essentially comes from the implementation of
      [Kohai] with support for ... tree expansion.*)
+  let in_path = resolve_path fs.scope in_path in
   let _, path = path_to_list in_path in
   let rec aux acc fs path =
     match fs, path with
-    | [], [] ->
+    | [], ([] | [ _ ]) ->
       (* We have gone through the entire tree, and the target does not
          exist, so we can create it where we are (maintained by
          [acc]). *)
@@ -177,6 +185,7 @@ let update fs in_path callback =
         aux (cdir :: acc) fs_xs path
     | [], name :: path_xs ->
       (* We need continue to create a tree structure. *)
+      let () = print_endline name in
       let new_dir = dir ~name (aux [] [] path_xs) in
       new_dir :: acc |> sort_items
     | x :: fs_xs, path ->
@@ -195,6 +204,31 @@ let touch fs path ?(if_exists = Fun.id) ?metadata content =
     | None ->
       let name = Path.basename path in
       Some (file ?metadata ~name content))
+;;
+
+let rm_file fs path =
+  update fs path (fun ~previous ~path:_ ->
+    match previous with
+    | None | Some (File _) -> None
+    | item -> item)
+;;
+
+let rm_dir fs path =
+  update fs path (fun ~previous ~path:_ ->
+    match previous with
+    | None | Some (Directory _) -> None
+    | item -> item)
+;;
+
+let rm fs path = update fs path (fun ~previous:_ ~path:_ -> None)
+
+let mv fs ~target path =
+  match fetch fs target, fetch fs path with
+  | Some _, _ (* The new path already exists. *)
+  | _, None (* The target does not exists. *) -> fs
+  | None, Some item ->
+    let new_fs = rm fs path in
+    update new_fs target (fun ~previous:_ ~path:_ -> Some item)
 ;;
 
 (* OKAY: [ls], [nested_print] and [tree] are essentially the testing
