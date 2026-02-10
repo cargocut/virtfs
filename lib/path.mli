@@ -106,6 +106,11 @@ val graft : ?ignore_kind:bool -> into:t -> t -> t
 
     - [`Compound] preserves the extension of the source (see
       {!val:compound_extension}) *)
+val rename
+  :  ?preserve_extension:[ `Compound | `Ext ]
+  -> new_name:string
+  -> t
+  -> t
 
 (** [trim ?ignore_kind ~prefix p] will remove the given [prefix] from
     the given path [p]. If the paths have different [kinds]
@@ -114,15 +119,13 @@ val graft : ?ignore_kind:bool -> into:t -> t -> t
     kind as a main kind).*)
 val trim : ?ignore_kind:bool -> prefix:t -> t -> t
 
-(** [rename ?preserves_extension ~new_name p] will rename the given
-    path [p] with [new_name]. The [preserve_extension] parameter
-    allows you to choose whether or not to keep the extension. By
-    default, the extension is not preserved.*)
-val rename
-  :  ?preserve_extension:[ `Compound | `Ext ]
-  -> new_name:string
-  -> t
-  -> t
+(** [resolve ~from p] will resolve [p] from [from]'s perspective. If
+    [p] is absolute, it return [p]. *)
+val resolve : from:t -> t -> t
+
+(** [scope ~from p] will share the scope of [from] and [p]. It is
+    [resolve ~from:(dirname from)]. *)
+val scope : from:t -> t -> t
 
 (** {1 Extension}
 

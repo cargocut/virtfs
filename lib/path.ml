@@ -452,6 +452,19 @@ let rename ?preserve_extension ~new_name source =
     update_basename (basename_rename ?preserve_extension new_name) source
 ;;
 
+let resolve ~from = function
+  | Absolute _ as p ->
+    (* If the path is absolute, it does not
+       need to be resolved. *)
+    p
+  | Relative xs -> append from xs
+;;
+
+let scope ~from p =
+  let from = dirname from in
+  resolve ~from p
+;;
+
 module Infix = struct
   let ( ++ ) = append
   let ( / ) path f = append path [ f ]

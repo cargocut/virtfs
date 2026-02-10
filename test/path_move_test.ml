@@ -228,3 +228,43 @@ let%expect_test "trim prefix" =
   source |> trim ~ignore_kind:true ~prefix |> dump_path;
   [%expect {| /index.md |}]
 ;;
+
+let%expect_test "resolve" =
+  let open Path in
+  let from = abs [ "foo"; "bar" ]
+  and source = rel [ "baz" ] in
+  source |> resolve ~from |> dump_path;
+  [%expect {| /foo/bar/baz |}]
+;;
+
+let%expect_test "resolve" =
+  let open Path in
+  let from = abs [ "foo"; "bar" ]
+  and source = abs [ "baz" ] in
+  source |> resolve ~from |> dump_path;
+  [%expect {| /baz |}]
+;;
+
+let%expect_test "resolve" =
+  let open Path in
+  let from = abs [ "foo"; "bar" ]
+  and source = rel [ ".."; "baz" ] in
+  source |> resolve ~from |> dump_path;
+  [%expect {| /foo/baz |}]
+;;
+
+let%expect_test "scope" =
+  let open Path in
+  let from = abs [ "foo"; "bar" ]
+  and source = rel [ "baz" ] in
+  source |> scope ~from |> dump_path;
+  [%expect {| /foo/baz |}]
+;;
+
+let%expect_test "scope" =
+  let open Path in
+  let from = abs [ "foo"; "bar" ]
+  and source = rel [ ".."; "baz" ] in
+  source |> scope ~from |> dump_path;
+  [%expect {| /baz |}]
+;;
