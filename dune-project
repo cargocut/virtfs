@@ -23,7 +23,7 @@
 (package
  (name virtfs)
  (synopsis "An abstract implementation of file paths")
- (description "An abstract implementation of file paths")
+ (description "Abstract on file paths to enable easy embedding of unit tests dependent on a file system")
  (depends
   (ocaml (>= 5.0.0))
 
