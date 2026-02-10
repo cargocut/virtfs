@@ -80,3 +80,84 @@ let%expect_test "mkdir" =
         └─bar/
     |}]
 ;;
+
+let%expect_test "mkdir_p" =
+  let clock _ = 5.0 in
+  let path = Path.abs [ "1-foo"; "bar"; "index.md" ] in
+  let f () =
+    try
+      let fs = fs |> U.mkdir_p ~clock ~path in
+      let tm = mtime path fs in
+      tm |> Float.to_string |> print_endline;
+      fs |> T.tree |> print_endline
+    with
+    | U.Dummy_tree err -> err |> U.error_to_string |> print_endline
+  in
+  f ();
+  [%expect
+    {| mkdir: cannot create directory '/1-foo/bar/index.md': File exists |}]
+;;
+
+let%expect_test "mkdir_p" =
+  let clock _ = 5.0 in
+  let path = Path.abs [ "1-foo"; "bar" ] in
+  let f () =
+    try
+      let fs = fs |> U.mkdir_p ~clock ~path in
+      let tm = mtime path fs in
+      tm |> Float.to_string |> print_endline;
+      fs |> T.tree |> print_endline
+    with
+    | U.Dummy_tree err -> err |> U.error_to_string |> print_endline
+  in
+  f ();
+  [%expect
+    {|
+    1.
+
+    └─/
+      └─1-foo/
+        └─bar/
+          └─index.md
+      └─2-foo/
+        └─bar/
+          └─baz/
+            └─index.md
+      └─3-foo/
+        └─bar/
+    |}]
+;;
+
+let%expect_test "mkdir_p" =
+  let clock _ = 5.0 in
+  let path = Path.abs [ "4-foo"; "bar"; "baz"; "storage" ] in
+  let f () =
+    try
+      let fs = fs |> U.mkdir_p ~clock ~path in
+      let tm = mtime path fs in
+      tm |> Float.to_string |> print_endline;
+      fs |> T.tree |> print_endline
+    with
+    | U.Dummy_tree err -> err |> U.error_to_string |> print_endline
+  in
+  f ();
+  [%expect
+    {|
+    5.
+
+    └─/
+      └─1-foo/
+        └─bar/
+          └─index.md
+      └─2-foo/
+        └─bar/
+          └─baz/
+            └─index.md
+      └─3-foo/
+        └─bar/
+      └─4-foo/
+        └─bar/
+          └─baz/
+            └─storage/
+    |}]
+;;

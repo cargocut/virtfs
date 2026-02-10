@@ -225,4 +225,9 @@ module Dummy : sig
       given [path] with behaviour similar to the Unix command
       [mkdir]. *)
   val mkdir : ?clock:(content -> time) -> path:Path.t -> t -> t
+
+  (** [mkdir_p ?clock ~path] creates the directory referenced by the
+      given [path] with behaviour similar to the Unix command
+      [mkdir -p]. *)
+  val mkdir_p : ?clock:(content -> time) -> path:Path.t -> t -> t
 end

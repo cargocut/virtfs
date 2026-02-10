@@ -338,6 +338,20 @@ module Dummy = struct
     | None, _ -> raise_error (Mkdir (path, "No such file or directory"))
   ;;
 
+  let mkdir_p ?(clock = dummy_clock 1.0) ~path fs =
+    let rec aux path fs =
+      let file = fetch ~path fs in
+      match file with
+      | Some (File _) -> raise_error (Mkdir (path, "File exists"))
+      | Some (Directory _) -> fs
+      | None ->
+        let p = Path.dirname path in
+        let fs = aux p fs in
+        mkdir ~clock ~path fs
+    in
+    aux path fs
+  ;;
+
   let mtime item =
     item
     |> metadata
