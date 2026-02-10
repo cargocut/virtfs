@@ -292,6 +292,9 @@ module Dummy = struct
   type content = string
   type nonrec item = (content, metadata) item
   type nonrec t = (content, metadata) t
+  type error = Mkdir of Path.t * string
+
+  exception Dummy_tree of error
 
   let dummy_clock x _ = x
 
@@ -308,6 +311,31 @@ module Dummy = struct
 
   let dir ?(clock = dummy_clock 1.0) ~name children =
     dir ~metadata:{ mtime = clock name } ~name children
+  ;;
+
+  let error_s path prim err reason =
+    prim ^ ": " ^ err ^ " '" ^ Path.to_string path ^ "': " ^ reason
+  ;;
+
+  let error_to_string = function
+    | Mkdir (p, reason) -> error_s p "mkdir" "cannot create directory" reason
+  ;;
+
+  let raise_error error = raise (Dummy_tree error)
+
+  let mkdir ?(clock = dummy_clock 1.0) ~path fs =
+    let dname = Path.dirname path in
+    match fetch ~path:dname fs, fetch ~path fs with
+    | Some _, None ->
+      update
+        ~path
+        (fun ~previous:_ ~path ->
+           let bname = Path.basename path in
+           let item = dir ~clock ~name:bname [] in
+           Some item)
+        fs
+    | _, Some _ -> raise_error (Mkdir (path, "File exists"))
+    | None, _ -> raise_error (Mkdir (path, "No such file or directory"))
   ;;
 
   let mtime item =

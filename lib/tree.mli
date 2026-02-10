@@ -188,6 +188,19 @@ module Dummy : sig
   (** Items of the file system. *)
   type nonrec t = (content, metadata) t
 
+  (** {2 Error handling}
+
+      The API relies on exceptions to describe failures. Each function
+      that may fail throws the [Dummy_tree] exception. *)
+
+  (** Set of all possible errors. *)
+  type error
+
+  exception Dummy_tree of error
+
+  (** Render an error as an Unix-like error message. *)
+  val error_to_string : error -> string
+
   (** {1 Tree construction} *)
 
   (** [dummy_clock f] creates a constant clock, always returning
@@ -207,4 +220,9 @@ module Dummy : sig
 
   (** [mtime item] returns the {i modification time} of the given [item]. *)
   val mtime : item -> float
+
+  (** [mkdir ?clock ~path] creates the directory referenced by the
+      given [path] with behaviour similar to the Unix command
+      [mkdir]. *)
+  val mkdir : ?clock:(content -> time) -> path:Path.t -> t -> t
 end
