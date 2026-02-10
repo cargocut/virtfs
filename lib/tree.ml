@@ -280,3 +280,41 @@ let cat ~to_string fs path =
     "cat: " ^ s ^ ": Is a directory"
   | Some (File { content; _ }) -> to_string content
 ;;
+
+module Dummy = struct
+  (* NOTE: A very minimal implementation of a file system that shares
+     some naive characteristics with Unix. As the purpose is to be
+     used primarily for testing, its support is fairly basic. *)
+
+  type time = float
+  type 'a clock = 'a -> time
+  type metadata = { mtime : time }
+  type content = string
+  type nonrec item = (content, metadata) item
+  type nonrec t = (content, metadata) t
+
+  let dummy_clock x _ = x
+
+  let mount ?(clock = dummy_clock 1.0) ~scope children =
+    make
+      ~scope_metadata:(fun path -> Some { mtime = clock path })
+      ~scope
+      children
+  ;;
+
+  let file ?(clock = dummy_clock 1.0) ~name content =
+    file ~metadata:{ mtime = clock (name, content) } ~name content
+  ;;
+
+  let dir ?(clock = dummy_clock 1.0) ~name children =
+    dir ~metadata:{ mtime = clock name } ~name children
+  ;;
+
+  let mtime item =
+    item
+    |> metadata
+    |> Option.fold
+         ~none:0.0 (* OKAY: having [0.0] as a default result seems ok. *)
+         ~some:(fun { mtime } -> mtime)
+  ;;
+end

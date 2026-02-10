@@ -154,3 +154,57 @@ val tree : ('a, 'metadata) t -> string
 (** [cat ~to_string fs path] Returns a string that resembles the
     output of the [cat] command in [Unix] (without concatenation). *)
 val cat : to_string:('a -> string) -> ('a, 'metadata) t -> Path.t -> string
+
+(** {1 A Dummy File System Implementation}
+
+    The implementation is not abstract, which allows generic functions
+    to be used on a [Dummy] tree. *)
+
+module Dummy : sig
+  (** A truly {b very naive} implementation of a file system where the
+      contents of files are strings and their metadata only associates
+      modification dates. *)
+
+  (** {1 Types} *)
+
+  (** The [float] type is used to represent time, in the same way as
+      the Unix module. *)
+  type time = float
+
+  (** A clock is simply a function that produces a value of type
+      {!type:time}. *)
+  type 'a clock = 'a -> time
+
+  (** The metadata type is deliberately left abstract to simplify its
+      potential extension. *)
+  type metadata
+
+  (** The contents of the files are simple strings. *)
+  type content = string
+
+  (** Items of the file system. *)
+  type nonrec item = (content, metadata) item
+
+  (** Items of the file system. *)
+  type nonrec t = (content, metadata) t
+
+  (** {1 Tree construction} *)
+
+  (** [dummy_clock f] creates a constant clock, always returning
+      [f]. *)
+  val dummy_clock : float -> 'a clock
+
+  (** [mount ?clock ~scope children] creates a tree using {!val:make}. *)
+  val mount : ?clock:Path.t clock -> scope:Path.t -> item list -> t
+
+  (** [file ?clock ~name content] creates a file. The [clock] is
+      parametrized by the couple of [name, content]. *)
+  val file : ?clock:(string * content) clock -> name:string -> content -> item
+
+  (** [dir ?clock ~name children] creates a directory. The [clock] is
+      parametrized by the [name] of the directory. *)
+  val dir : ?clock:string clock -> name:string -> item list -> item
+
+  (** [mtime item] returns the {i modification time} of the given [item]. *)
+  val mtime : item -> float
+end
