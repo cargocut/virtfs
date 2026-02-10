@@ -4,7 +4,7 @@
    SPDX-License-Identifier: BSD-3-Clause *)
 
 let fetch fs path =
-  match Tree.fetch fs path with
+  match Tree.fetch fs ~path with
   | None -> print_endline (Path.to_filename path ^ ": Not found")
   | Some item ->
     let name = Tree.name item in
@@ -24,7 +24,8 @@ let%expect_test "a simple ls" =
       ]
   in
   fs |> Tree.ls ~scope:Path.root |> List.iter print_endline;
-  [%expect {|
+  [%expect
+    {|
     bar/
     foo/
     config.ini
@@ -41,7 +42,8 @@ let%expect_test "a simple ls from root" =
       ]
   in
   fs |> Tree.ls ~scope:Path.root |> List.iter print_endline;
-  [%expect {|
+  [%expect
+    {|
     bar/
     foo/
     config.ini

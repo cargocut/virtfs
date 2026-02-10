@@ -94,10 +94,10 @@ let%expect_test "A complicated tree" =
 ;;
 
 let%expect_test "touch" =
-  let fs =
-    Tree.touch base_fs (Path.rel [ "c"; "c3"; "a-c-file.md" ]) "CONTENT"
-  in
-  fs |> Tree.tree |> print_endline;
+  base_fs
+  |> Tree.touch ~path:(Path.rel [ "c"; "c3"; "a-c-file.md" ]) "CONTENT"
+  |> Tree.tree
+  |> print_endline;
   [%expect
     {|
     └─./
@@ -132,6 +132,582 @@ let%expect_test "touch" =
         └─c2/
         └─c3/
           └─a-c-file.md
+        └─c4/
+    |}]
+;;
+
+let%expect_test "rm_file should not impact the file system on directory" =
+  base_fs
+  |> Tree.rm_file ~path:(Path.rel [ "a"; "a1" ])
+  |> Tree.tree
+  |> print_endline;
+  [%expect
+    {|
+    └─./
+      └─a/
+        └─a1/
+          └─article-a1-1.md
+          └─article-a1-2.md
+        └─a2/
+          └─article-a2-1.md
+          └─article-a2-2.md
+          └─article-a2-3.md
+          └─article-a2-4.md
+        └─a3/
+          └─article-a3-1.md
+          └─article-a3-2.md
+          └─article-a3-3.md
+          └─article-a3-4.md
+        └─a4/
+          └─foo/
+            └─bar.md
+            └─foobar.md
+      └─b/
+        └─b1/
+          └─article-b1-1.md
+        └─b2/
+          └─article-b2-1.md
+        └─b3/
+        └─b4/
+          └─article-b4-1.md
+      └─c/
+        └─c1/
+        └─c2/
+        └─c3/
+        └─c4/
+    |}]
+;;
+
+let%expect_test "rm_dir should not impact the file system on file" =
+  base_fs
+  |> Tree.rm_dir ~path:(Path.rel [ "a"; "a1"; "article-a1-1.md" ])
+  |> Tree.tree
+  |> print_endline;
+  [%expect
+    {|
+    └─./
+      └─a/
+        └─a1/
+          └─article-a1-1.md
+          └─article-a1-2.md
+        └─a2/
+          └─article-a2-1.md
+          └─article-a2-2.md
+          └─article-a2-3.md
+          └─article-a2-4.md
+        └─a3/
+          └─article-a3-1.md
+          └─article-a3-2.md
+          └─article-a3-3.md
+          └─article-a3-4.md
+        └─a4/
+          └─foo/
+            └─bar.md
+            └─foobar.md
+      └─b/
+        └─b1/
+          └─article-b1-1.md
+        └─b2/
+          └─article-b2-1.md
+        └─b3/
+        └─b4/
+          └─article-b4-1.md
+      └─c/
+        └─c1/
+        └─c2/
+        └─c3/
+        └─c4/
+    |}]
+;;
+
+let%expect_test "rm_file should impact the file system on file" =
+  base_fs
+  |> Tree.rm_file ~path:(Path.rel [ "a"; "a1"; "article-a1-1.md" ])
+  |> Tree.tree
+  |> print_endline;
+  [%expect
+    {|
+    └─./
+      └─a/
+        └─a1/
+          └─article-a1-2.md
+        └─a2/
+          └─article-a2-1.md
+          └─article-a2-2.md
+          └─article-a2-3.md
+          └─article-a2-4.md
+        └─a3/
+          └─article-a3-1.md
+          └─article-a3-2.md
+          └─article-a3-3.md
+          └─article-a3-4.md
+        └─a4/
+          └─foo/
+            └─bar.md
+            └─foobar.md
+      └─b/
+        └─b1/
+          └─article-b1-1.md
+        └─b2/
+          └─article-b2-1.md
+        └─b3/
+        └─b4/
+          └─article-b4-1.md
+      └─c/
+        └─c1/
+        └─c2/
+        └─c3/
+        └─c4/
+    |}]
+;;
+
+let%expect_test "rm_dir should impact the file system on directory" =
+  base_fs |> Tree.rm_dir ~path:(Path.rel [ "c" ]) |> Tree.tree |> print_endline;
+  [%expect
+    {|
+    └─./
+      └─a/
+        └─a1/
+          └─article-a1-1.md
+          └─article-a1-2.md
+        └─a2/
+          └─article-a2-1.md
+          └─article-a2-2.md
+          └─article-a2-3.md
+          └─article-a2-4.md
+        └─a3/
+          └─article-a3-1.md
+          └─article-a3-2.md
+          └─article-a3-3.md
+          └─article-a3-4.md
+        └─a4/
+          └─foo/
+            └─bar.md
+            └─foobar.md
+      └─b/
+        └─b1/
+          └─article-b1-1.md
+        └─b2/
+          └─article-b2-1.md
+        └─b3/
+        └─b4/
+          └─article-b4-1.md
+    |}]
+;;
+
+let%expect_test "rm should impact the file system on directory" =
+  base_fs
+  |> Tree.rm ~path:(Path.rel [ "a"; "a2" ])
+  |> Tree.tree
+  |> print_endline;
+  [%expect
+    {|
+    └─./
+      └─a/
+        └─a1/
+          └─article-a1-1.md
+          └─article-a1-2.md
+        └─a3/
+          └─article-a3-1.md
+          └─article-a3-2.md
+          └─article-a3-3.md
+          └─article-a3-4.md
+        └─a4/
+          └─foo/
+            └─bar.md
+            └─foobar.md
+      └─b/
+        └─b1/
+          └─article-b1-1.md
+        └─b2/
+          └─article-b2-1.md
+        └─b3/
+        └─b4/
+          └─article-b4-1.md
+      └─c/
+        └─c1/
+        └─c2/
+        └─c3/
+        └─c4/
+    |}]
+;;
+
+let%expect_test "rm should impact the file system on directory" =
+  base_fs |> Tree.rm ~path:(Path.rel [ "a" ]) |> Tree.tree |> print_endline;
+  [%expect
+    {|
+    └─./
+      └─b/
+        └─b1/
+          └─article-b1-1.md
+        └─b2/
+          └─article-b2-1.md
+        └─b3/
+        └─b4/
+          └─article-b4-1.md
+      └─c/
+        └─c1/
+        └─c2/
+        └─c3/
+        └─c4/
+    |}]
+;;
+
+let%expect_test "rm should impact the file system on file" =
+  base_fs
+  |> Tree.rm ~path:(Path.rel [ "b"; "b2"; "article-b2-1.md" ])
+  |> Tree.tree
+  |> print_endline;
+  [%expect
+    {|
+    └─./
+      └─a/
+        └─a1/
+          └─article-a1-1.md
+          └─article-a1-2.md
+        └─a2/
+          └─article-a2-1.md
+          └─article-a2-2.md
+          └─article-a2-3.md
+          └─article-a2-4.md
+        └─a3/
+          └─article-a3-1.md
+          └─article-a3-2.md
+          └─article-a3-3.md
+          └─article-a3-4.md
+        └─a4/
+          └─foo/
+            └─bar.md
+            └─foobar.md
+      └─b/
+        └─b1/
+          └─article-b1-1.md
+        └─b2/
+        └─b3/
+        └─b4/
+          └─article-b4-1.md
+      └─c/
+        └─c1/
+        └─c2/
+        └─c3/
+        └─c4/
+    |}]
+;;
+
+let%expect_test
+    "mv should not impact the filesystem if the source does not exists"
+  =
+  base_fs
+  |> Tree.mv ~target:(Path.rel []) ~source:(Path.rel [ "d"; "d2" ])
+  |> Tree.tree
+  |> print_endline;
+  [%expect
+    {|
+    └─./
+      └─a/
+        └─a1/
+          └─article-a1-1.md
+          └─article-a1-2.md
+        └─a2/
+          └─article-a2-1.md
+          └─article-a2-2.md
+          └─article-a2-3.md
+          └─article-a2-4.md
+        └─a3/
+          └─article-a3-1.md
+          └─article-a3-2.md
+          └─article-a3-3.md
+          └─article-a3-4.md
+        └─a4/
+          └─foo/
+            └─bar.md
+            └─foobar.md
+      └─b/
+        └─b1/
+          └─article-b1-1.md
+        └─b2/
+          └─article-b2-1.md
+        └─b3/
+        └─b4/
+          └─article-b4-1.md
+      └─c/
+        └─c1/
+        └─c2/
+        └─c3/
+        └─c4/
+    |}]
+;;
+
+let%expect_test "mv should not impact the filesystem if the target exists" =
+  base_fs
+  |> Tree.mv
+       ~target:(Path.rel [ "b"; "b2"; "article-b2-1.md" ])
+       ~source:(Path.rel [ "b"; "b1"; "article-b1-1.md" ])
+  |> Tree.tree
+  |> print_endline;
+  [%expect
+    {|
+    └─./
+      └─a/
+        └─a1/
+          └─article-a1-1.md
+          └─article-a1-2.md
+        └─a2/
+          └─article-a2-1.md
+          └─article-a2-2.md
+          └─article-a2-3.md
+          └─article-a2-4.md
+        └─a3/
+          └─article-a3-1.md
+          └─article-a3-2.md
+          └─article-a3-3.md
+          └─article-a3-4.md
+        └─a4/
+          └─foo/
+            └─bar.md
+            └─foobar.md
+      └─b/
+        └─b1/
+          └─article-b1-1.md
+        └─b2/
+          └─article-b2-1.md
+        └─b3/
+        └─b4/
+          └─article-b4-1.md
+      └─c/
+        └─c1/
+        └─c2/
+        └─c3/
+        └─c4/
+    |}]
+;;
+
+let%expect_test "mv" =
+  base_fs
+  |> Tree.mv
+       ~target:(Path.rel [ "c"; "c2"; "article-b2-1.md" ])
+       ~source:(Path.rel [ "b"; "b1"; "article-b1-1.md" ])
+  |> Tree.tree
+  |> print_endline;
+  [%expect
+    {|
+    └─./
+      └─a/
+        └─a1/
+          └─article-a1-1.md
+          └─article-a1-2.md
+        └─a2/
+          └─article-a2-1.md
+          └─article-a2-2.md
+          └─article-a2-3.md
+          └─article-a2-4.md
+        └─a3/
+          └─article-a3-1.md
+          └─article-a3-2.md
+          └─article-a3-3.md
+          └─article-a3-4.md
+        └─a4/
+          └─foo/
+            └─bar.md
+            └─foobar.md
+      └─b/
+        └─b1/
+        └─b2/
+          └─article-b2-1.md
+        └─b3/
+        └─b4/
+          └─article-b4-1.md
+      └─c/
+        └─c1/
+        └─c2/
+          └─article-b2-1.md
+        └─c3/
+        └─c4/
+    |}]
+;;
+
+let%expect_test "mv" =
+  base_fs
+  |> Tree.mv
+       ~target:(Path.rel [ "d"; "d2"; "d3"; "d4"; "article-b2-1.md" ])
+       ~source:(Path.rel [ "b"; "b1"; "article-b1-1.md" ])
+  |> Tree.tree
+  |> print_endline;
+  [%expect
+    {|
+    └─./
+      └─a/
+        └─a1/
+          └─article-a1-1.md
+          └─article-a1-2.md
+        └─a2/
+          └─article-a2-1.md
+          └─article-a2-2.md
+          └─article-a2-3.md
+          └─article-a2-4.md
+        └─a3/
+          └─article-a3-1.md
+          └─article-a3-2.md
+          └─article-a3-3.md
+          └─article-a3-4.md
+        └─a4/
+          └─foo/
+            └─bar.md
+            └─foobar.md
+      └─b/
+        └─b1/
+        └─b2/
+          └─article-b2-1.md
+        └─b3/
+        └─b4/
+          └─article-b4-1.md
+      └─c/
+        └─c1/
+        └─c2/
+        └─c3/
+        └─c4/
+      └─d/
+        └─d2/
+          └─d3/
+            └─d4/
+              └─article-b2-1.md
+    |}]
+;;
+
+let%expect_test "mv" =
+  base_fs
+  |> Tree.mv
+       ~target:(Path.rel [ "article-b2-1.md" ])
+       ~source:(Path.rel [ "b"; "b1"; "article-b1-1.md" ])
+  |> Tree.tree
+  |> print_endline;
+  [%expect
+    {|
+    └─./
+      └─a/
+        └─a1/
+          └─article-a1-1.md
+          └─article-a1-2.md
+        └─a2/
+          └─article-a2-1.md
+          └─article-a2-2.md
+          └─article-a2-3.md
+          └─article-a2-4.md
+        └─a3/
+          └─article-a3-1.md
+          └─article-a3-2.md
+          └─article-a3-3.md
+          └─article-a3-4.md
+        └─a4/
+          └─foo/
+            └─bar.md
+            └─foobar.md
+      └─b/
+        └─b1/
+        └─b2/
+          └─article-b2-1.md
+        └─b3/
+        └─b4/
+          └─article-b4-1.md
+      └─c/
+        └─c1/
+        └─c2/
+        └─c3/
+        └─c4/
+      └─article-b2-1.md
+    |}]
+;;
+
+let%expect_test "mv" =
+  base_fs
+  |> Tree.mv
+       ~target:(Path.rel [ ".."; ".."; ".."; "expansion" ])
+       ~source:(Path.rel [ "b"; "b1"; "article-b1-1.md" ])
+  |> Tree.tree
+  |> print_endline;
+  [%expect
+    {|
+    └─./
+      └─../
+        └─../
+          └─../
+            └─expansion
+      └─a/
+        └─a1/
+          └─article-a1-1.md
+          └─article-a1-2.md
+        └─a2/
+          └─article-a2-1.md
+          └─article-a2-2.md
+          └─article-a2-3.md
+          └─article-a2-4.md
+        └─a3/
+          └─article-a3-1.md
+          └─article-a3-2.md
+          └─article-a3-3.md
+          └─article-a3-4.md
+        └─a4/
+          └─foo/
+            └─bar.md
+            └─foobar.md
+      └─b/
+        └─b1/
+        └─b2/
+          └─article-b2-1.md
+        └─b3/
+        └─b4/
+          └─article-b4-1.md
+      └─c/
+        └─c1/
+        └─c2/
+        └─c3/
+        └─c4/
+    |}]
+;;
+
+let%expect_test "mv" =
+  base_fs
+  |> Tree.mv
+       ~target:(Path.rel [ ".."; ".."; ".."; "expansion" ])
+       ~source:(Path.rel [ "b"; "b1"; "article-b1-1.md" ])
+  |> Tree.tree
+  |> print_endline;
+  [%expect
+    {|
+    └─./
+      └─../
+        └─../
+          └─../
+            └─expansion
+      └─a/
+        └─a1/
+          └─article-a1-1.md
+          └─article-a1-2.md
+        └─a2/
+          └─article-a2-1.md
+          └─article-a2-2.md
+          └─article-a2-3.md
+          └─article-a2-4.md
+        └─a3/
+          └─article-a3-1.md
+          └─article-a3-2.md
+          └─article-a3-3.md
+          └─article-a3-4.md
+        └─a4/
+          └─foo/
+            └─bar.md
+            └─foobar.md
+      └─b/
+        └─b1/
+        └─b2/
+          └─article-b2-1.md
+        └─b3/
+        └─b4/
+          └─article-b4-1.md
+      └─c/
+        └─c1/
+        └─c2/
+        └─c3/
         └─c4/
     |}]
 ;;

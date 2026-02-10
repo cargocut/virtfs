@@ -93,46 +93,50 @@ val metadata : ('a, 'metadata) item -> 'metadata option
 
 (** {1 Operation on Trees} *)
 
-(** [fetch fs path] try to reach the [item] at the position [path]. *)
-val fetch : ('a, 'metadata) t -> Path.t -> ('a, 'metadata) item option
+(** [fetch ~path fs] try to reach the [item] at the position [path]. *)
+val fetch : path:Path.t -> ('a, 'metadata) t -> ('a, 'metadata) item option
 
 (** [prism fs scope] returns a sub-tree based on a path ([scope]).*)
 val prism : scope:Path.t -> ('a, 'metadata) t -> ('a, 'metadata) t
 
-(** [update fs path callback] generic function to modify the filetree,
+(** [update ~path callback fs] generic function to modify the filetree,
     it is the [callback] function (returning an option) that describes
     whether the file should be created or deleted. *)
 val update
-  :  ('a, 'metadata) t
-  -> Path.t
+  :  path:Path.t
   -> (previous:('a, 'metadata) item option
       -> path:Path.t
       -> ('a, 'metadata) item option)
   -> ('a, 'metadata) t
+  -> ('a, 'metadata) t
 
-(** [touch fs path ?metadata content] returns a new filesystem where,
+(** [touch ~path ?metadata content fs] returns a new filesystem where,
     if the target exists, [if_exists] is applied; otherwise, a file is
     created. *)
 val touch
-  :  ('a, 'metadata) t
-  -> Path.t
+  :  path:Path.t
   -> ?if_exists:(('a, 'metadata) item -> ('a, 'metadata) item)
   -> ?metadata:'metadata
   -> 'a
   -> ('a, 'metadata) t
+  -> ('a, 'metadata) t
 
-(** [rm fs path] remove the item by a given [path]. *)
-val rm : ('a, 'metadata) t -> Path.t -> ('a, 'metadata) t
+(** [rm ~path fs] remove the item by a given [path]. *)
+val rm : path:Path.t -> ('a, 'metadata) t -> ('a, 'metadata) t
 
 (** [rm_file fs path] remove the file by a given [path]. *)
-val rm_file : ('a, 'metadata) t -> Path.t -> ('a, 'metadata) t
+val rm_file : path:Path.t -> ('a, 'metadata) t -> ('a, 'metadata) t
 
 (** [rm_dir fs path] remove the directory by a given [path]. *)
-val rm_dir : ('a, 'metadata) t -> Path.t -> ('a, 'metadata) t
+val rm_dir : path:Path.t -> ('a, 'metadata) t -> ('a, 'metadata) t
 
-(** [mv fs ~target p] move [p] as [target]. If the [target] exists, or
+(** [mv fs ~target ~source:p] move [p] as [target]. If the [target] exists, or
     the given [p] does not exists, [fs] remains unchanged. *)
-val mv : ('a, 'metadata) t -> target:Path.t -> Path.t -> ('a, 'metadata) t
+val mv
+  :  target:Path.t
+  -> source:Path.t
+  -> ('a, 'metadata) t
+  -> ('a, 'metadata) t
 
 (** {1 Misc}
 
