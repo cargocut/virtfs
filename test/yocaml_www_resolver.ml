@@ -116,7 +116,8 @@ let%expect_test "server resolver from target for articles" =
        dump_path target;
        dump_path on_web)
     articles;
-  [%expect {|
+  [%expect
+    {|
     ./_www/my-project/my-server/posts/an-article-1.html
     /my-project/my-server/posts/an-article-1.html
     ./_www/my-project/my-server/posts/an-article-2.html

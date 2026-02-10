@@ -2,7 +2,8 @@
 opam-version: "2.0"
 version: "dev"
 synopsis: "An abstract implementation of file paths"
-description: "An abstract implementation of file paths"
+description:
+  "Abstract on file paths to enable easy embedding of unit tests dependent on a file system"
 maintainer: [
   "d-plaindoux <d.plaindoux@free.fr>"
   "xhtmlboi <xhtmlboi@gmail.com>"
