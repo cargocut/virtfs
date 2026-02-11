@@ -299,6 +299,7 @@ module Simple = struct
     | Write_file of Path.t * string
     | Read_file of Path.t * string
     | Read_dir of Path.t * string
+    | Remove of Path.t * string
 
   exception Simple_error of error
 
@@ -307,6 +308,7 @@ module Simple = struct
   let err_is_file = "Is a file"
   let err_is_directory = "Is a directory"
   let err_overriden = "Cannot be overridden"
+  let err_not_empty = "Directory not empty"
 
   let error_s path prim err reason =
     prim ^ ": " ^ err ^ " '" ^ Path.to_string path ^ "': " ^ reason
@@ -338,6 +340,7 @@ module Simple = struct
     | Read_file (p, reason) -> error_s p "read_file" "cannot read file" reason
     | Read_dir (p, reason) ->
       error_s p "read_dir" "cannot read directory" reason
+    | Remove (p, reason) -> error_s p "rm" "cannot remove" reason
   ;;
 
   let run ?(finalizer = fun _ -> ()) callback =
@@ -458,5 +461,42 @@ module Simple = struct
     | Some (File _) -> raise_error (Read_dir (path, err_is_file))
     | Some (Directory { content = []; _ }) -> true
     | Some (Directory _) -> false
+  ;;
+
+  let rm_file ~path fs =
+    match fetch ~path fs with
+    | None -> raise_error (Remove (path, err_no_such_target))
+    | Some (Directory _) -> raise_error (Remove (path, err_is_directory))
+    | Some (File _) -> rm_file ~path fs
+  ;;
+
+  let generic_rm_dir = rm_dir
+
+  let rec rm_dir ?(recursive = false) ~path fs =
+    if recursive
+    then (
+      let rec aux path fs =
+        if is_file ~path fs
+        then rm_file ~path fs
+        else if is_empty_dir ~path fs
+        then rm_dir ~path fs
+        else (
+          let fs =
+            Path.Map.fold (fun path _ fs -> aux path fs) (read_dir ~path fs) fs
+          in
+          rm_dir ~path fs)
+      in
+      aux path fs)
+    else if is_empty_dir ~path fs
+    then generic_rm_dir ~path fs
+    else raise_error (Remove (path, err_not_empty))
+  ;;
+
+  let rm ?(recursive = false) ~path fs =
+    if is_file ~path fs
+    then rm_file ~path fs
+    else if is_directory ~path fs
+    then rm_dir ~recursive ~path fs
+    else raise_error (Remove (path, err_no_such_target))
   ;;
 end

@@ -124,14 +124,15 @@ val touch
 (** [rm ~path fs] remove the item by a given [path]. *)
 val rm : path:Path.t -> ('a, 'metadata) t -> ('a, 'metadata) t
 
-(** [rm_file fs path] remove the file by a given [path]. *)
+(** [rm_file ~path fs] remove the file by a given [path]. *)
 val rm_file : path:Path.t -> ('a, 'metadata) t -> ('a, 'metadata) t
 
-(** [rm_dir fs path] remove the directory by a given [path]. *)
+(** [rm_dir ~path fs] remove the directory by a given [path]. *)
 val rm_dir : path:Path.t -> ('a, 'metadata) t -> ('a, 'metadata) t
 
-(** [mv fs ~target ~source:p] move [p] as [target]. If the [target] exists, or
-    the given [p] does not exists, [fs] remains unchanged. *)
+(** [mv fs ~target ~source] move [source] as [target]. If the [target]
+    exists, or the given [source] does not exists, [fs] remains
+    unchanged. *)
 val mv
   :  target:Path.t
   -> source:Path.t
@@ -257,17 +258,17 @@ module Simple : sig
     -> t
     -> t
 
-  (* (\** [rm ~path fs] remove the item by a given [path] (like *)
-  (*     {!val:Tree.rm} but raising exception). *\) *)
-  (* val rm : path:Path.t -> t -> t *)
+  (** [rm ~path fs] remove the item by a given [path] (like
+      {!val:Tree.rm} but raising exception). *)
+  val rm : ?recursive:bool -> path:Path.t -> t -> t
 
-  (* (\** [rm_file fs path] remove the file by a given [path] (like *)
-  (*     {!val:Tree.rm_file} but raising exception). *\) *)
-  (* val rm_file : path:Path.t -> t -> t *)
+  (** [rm_file fs path] remove the file by a given [path] (like
+      {!val:Tree.rm_file} but raising exception). *)
+  val rm_file : path:Path.t -> t -> t
 
-  (* (\** [rm_dir fs path] remove the directory by a given [path] (like *)
-  (*     {!val:Tree.rm_dir} but raising exception). *\) *)
-  (* val rm_dir : path:Path.t -> t -> t *)
+  (** [rm_dir fs path] remove the directory by a given [path] (like
+      {!val:Tree.rm_dir} but raising exception). *)
+  val rm_dir : ?recursive:bool -> path:Path.t -> t -> t
 
   (** [write_file ?overwrite ?clock ~path content fs] creates (or
       overwrites, depending on the [overwrite] flag, default [false])
