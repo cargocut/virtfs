@@ -1,6 +1,7 @@
 (library
  (name virtfs)
- (public_name virtfs))
+ (public_name virtfs)
+ (modules_without_implementation virtfs))
 
 (mdx
  (files *.mli)

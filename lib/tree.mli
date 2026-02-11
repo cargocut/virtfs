@@ -124,14 +124,15 @@ val touch
 (** [rm ~path fs] remove the item by a given [path]. *)
 val rm : path:Path.t -> ('a, 'metadata) t -> ('a, 'metadata) t
 
-(** [rm_file fs path] remove the file by a given [path]. *)
+(** [rm_file ~path fs] remove the file by a given [path]. *)
 val rm_file : path:Path.t -> ('a, 'metadata) t -> ('a, 'metadata) t
 
-(** [rm_dir fs path] remove the directory by a given [path]. *)
+(** [rm_dir ~path fs] remove the directory by a given [path]. *)
 val rm_dir : path:Path.t -> ('a, 'metadata) t -> ('a, 'metadata) t
 
-(** [mv fs ~target ~source:p] move [p] as [target]. If the [target] exists, or
-    the given [p] does not exists, [fs] remains unchanged. *)
+(** [mv fs ~target ~source] move [source] as [target]. If the [target]
+    exists, or the given [source] does not exists, [fs] remains
+    unchanged. *)
 val mv
   :  target:Path.t
   -> source:Path.t
@@ -158,12 +159,15 @@ val cat : to_string:('a -> string) -> ('a, 'metadata) t -> Path.t -> string
 (** {1 A Dummy File System Implementation}
 
     The implementation is not abstract, which allows generic functions
-    to be used on a [Dummy] tree. *)
+    to be used on a [Simple] tree (mostly used for tests). *)
 
-module Dummy : sig
+module Simple : sig
   (** A truly {b very naive} implementation of a file system where the
       contents of files are strings and their metadata only associates
-      modification dates. *)
+      modification dates.
+
+      The API throws {!exception:Simple_error} exceptions to mimic
+      Unix behaviour. *)
 
   (** {1 Types} *)
 
@@ -188,11 +192,24 @@ module Dummy : sig
   (** Items of the file system. *)
   type nonrec t = (content, metadata) t
 
+  (** {2 Error handling}
+
+      The API relies on exceptions to describe failures. Each function
+      that may fail throws the [Dummy_tree] exception. *)
+
+  (** Set of all possible errors. *)
+  type error
+
+  exception Simple_error of error
+
+  (** Render an error as an Unix-like error message. *)
+  val error_to_string : error -> string
+
   (** {1 Tree construction} *)
 
-  (** [dummy_clock f] creates a constant clock, always returning
+  (** [const_clock f] creates a constant clock, always returning
       [f]. *)
-  val dummy_clock : float -> 'a clock
+  val const_clock : float -> 'a clock
 
   (** [mount ?clock ~scope children] creates a tree using {!val:make}. *)
   val mount : ?clock:Path.t clock -> scope:Path.t -> item list -> t
@@ -205,6 +222,77 @@ module Dummy : sig
       parametrized by the [name] of the directory. *)
   val dir : ?clock:string clock -> name:string -> item list -> item
 
-  (** [mtime item] returns the {i modification time} of the given [item]. *)
-  val mtime : item -> float
+  (** {1 Tree operation} *)
+
+  (** [mtime ~path fs] returns the {i modification time} of the given
+      {!type:item} located at the given [path]. *)
+  val mtime : path:Path.t -> t -> float
+
+  (* [file_exists ~path fs] returns [true] if the file/directory
+     exists at the given [path] for the given [fs], [false]
+     otherwise. *)
+  val file_exists : path:Path.t -> t -> bool
+
+  (* [is_directory ~path fs] returns [true] if the directory
+     exists at the given [path] for the given [fs], [false]
+     otherwise (even if the target does not exists). *)
+  val is_directory : path:Path.t -> t -> bool
+
+  (* [is_file ~path fs] returns [true] if the file
+     exists at the given [path] for the given [fs], [false]
+     otherwise (even if the target does not exists). *)
+  val is_file : path:Path.t -> t -> bool
+
+  (** [is_empty_dir ~path fs] returns [true] if the directory located
+      at [path] for the given [fs] is an empty directory. *)
+  val is_empty_dir : path:Path.t -> t -> bool
+
+  (** [mkdir ?recursive ?clock ~path] creates the directory referenced
+      by the given [path] with behaviour similar to the Unix command
+      [mkdir] (the [recursive] flag is for [mkdir -p], default is
+      [false]). *)
+  val mkdir
+    :  ?recursive:bool
+    -> ?clock:(content -> time)
+    -> path:Path.t
+    -> t
+    -> t
+
+  (** [rm ~path fs] remove the item by a given [path] (like
+      {!val:Tree.rm} but raising exception). *)
+  val rm : ?recursive:bool -> path:Path.t -> t -> t
+
+  (** [rm_file fs path] remove the file by a given [path] (like
+      {!val:Tree.rm_file} but raising exception). *)
+  val rm_file : path:Path.t -> t -> t
+
+  (** [rm_dir fs path] remove the directory by a given [path] (like
+      {!val:Tree.rm_dir} but raising exception). *)
+  val rm_dir : ?recursive:bool -> path:Path.t -> t -> t
+
+  (** [write_file ?overwrite ?clock ~path content fs] creates (or
+      overwrites, depending on the [overwrite] flag, default [false])
+      the file [path] with content [content] on the given [fs].*)
+  val write_file
+    :  ?overwrite:bool
+    -> ?clock:(string * content -> time)
+    -> path:Path.t
+    -> string
+    -> t
+    -> t
+
+  (** [read_file ~path fs] Reads the contents of the file referenced
+      by its [path] for a given [fs]. *)
+  val read_file : path:Path.t -> t -> string
+
+  (** [read_dir ~path fs] returns the direct children of the directory
+      passed as an argument (in the form of a map of {{!type:item}
+      items} indexed by {{!type:Path.t} Paths}).*)
+  val read_dir : path:Path.t -> t -> item Path.Map.t
+
+  (** {1 Misc} *)
+
+  (** [run ?finalizer callback] runs [callback] and print errors on
+      [stderr]. *)
+  val run : ?finalizer:('a -> unit) -> (unit -> 'a) -> unit
 end

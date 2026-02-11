@@ -281,7 +281,7 @@ let cat ~to_string fs path =
   | Some (File { content; _ }) -> to_string content
 ;;
 
-module Dummy = struct
+module Simple = struct
   (* NOTE: A very minimal implementation of a file system that shares
      some naive characteristics with Unix. As the purpose is to be
      used primarily for testing, its support is fairly basic. *)
@@ -293,28 +293,210 @@ module Dummy = struct
   type nonrec item = (content, metadata) item
   type nonrec t = (content, metadata) t
 
-  let dummy_clock x _ = x
+  type error =
+    | Mkdir of Path.t * string
+    | Stat of Path.t * string
+    | Write_file of Path.t * string
+    | Read_file of Path.t * string
+    | Read_dir of Path.t * string
+    | Remove of Path.t * string
 
-  let mount ?(clock = dummy_clock 1.0) ~scope children =
+  exception Simple_error of error
+
+  let err_file_exists = "File exists"
+  let err_no_such_target = "No such file or directory"
+  let err_is_file = "Is a file"
+  let err_is_directory = "Is a directory"
+  let err_overriden = "Cannot be overridden"
+  let err_not_empty = "Directory not empty"
+
+  let error_s path prim err reason =
+    prim ^ ": " ^ err ^ " '" ^ Path.to_string path ^ "': " ^ reason
+  ;;
+
+  let raise_error error = raise (Simple_error error)
+  let const_clock x _ = x
+
+  let mount ?(clock = const_clock 1.0) ~scope children =
     make
       ~scope_metadata:(fun path -> Some { mtime = clock path })
       ~scope
       children
   ;;
 
-  let file ?(clock = dummy_clock 1.0) ~name content =
+  let file ?(clock = const_clock 1.0) ~name content =
     file ~metadata:{ mtime = clock (name, content) } ~name content
   ;;
 
-  let dir ?(clock = dummy_clock 1.0) ~name children =
+  let dir ?(clock = const_clock 1.0) ~name children =
     dir ~metadata:{ mtime = clock name } ~name children
   ;;
 
-  let mtime item =
-    item
-    |> metadata
-    |> Option.fold
-         ~none:0.0 (* OKAY: having [0.0] as a default result seems ok. *)
-         ~some:(fun { mtime } -> mtime)
+  let error_to_string = function
+    | Mkdir (p, reason) -> error_s p "mkdir" "cannot create directory" reason
+    | Stat (p, reason) -> error_s p "stat" "cannot statx" reason
+    | Write_file (p, reason) ->
+      error_s p "create_file" "cannot create file" reason
+    | Read_file (p, reason) -> error_s p "read_file" "cannot read file" reason
+    | Read_dir (p, reason) ->
+      error_s p "read_dir" "cannot read directory" reason
+    | Remove (p, reason) -> error_s p "rm" "cannot remove" reason
+  ;;
+
+  let run ?(finalizer = fun _ -> ()) callback =
+    try finalizer (callback ()) with
+    | Simple_error err -> err |> error_to_string |> prerr_endline
+  ;;
+
+  let create_dir ?(clock = const_clock 1.0) ~path fs =
+    let dname = Path.dirname path in
+    match fetch ~path:dname fs, fetch ~path fs with
+    | Some _, None ->
+      update
+        ~path
+        (fun ~previous:_ ~path ->
+           let bname = Path.basename path in
+           let item = dir ~clock ~name:bname [] in
+           Some item)
+        fs
+    | _, Some _ -> raise_error (Mkdir (path, err_file_exists))
+    | None, _ -> raise_error (Mkdir (path, err_no_such_target))
+  ;;
+
+  let create_dir_rec ?(clock = const_clock 1.0) ~path fs =
+    let rec aux path fs =
+      let file = fetch ~path fs in
+      match file with
+      | Some (File _) -> raise_error (Mkdir (path, err_file_exists))
+      | Some (Directory _) -> fs
+      | None ->
+        let p = Path.dirname path in
+        let fs = aux p fs in
+        create_dir ~clock ~path fs
+    in
+    aux path fs
+  ;;
+
+  let mkdir ?(recursive = false) ?(clock = const_clock 1.0) ~path fs =
+    if recursive
+    then create_dir_rec ~clock ~path fs
+    else create_dir ~clock ~path fs
+  ;;
+
+  let mtime ~path fs =
+    match fetch ~path fs with
+    | Some item ->
+      item
+      |> metadata
+      |> Option.fold
+           ~none:0.0 (* OKAY: having [0.0] as a default result seems ok. *)
+           ~some:(fun { mtime } -> mtime)
+    | _ -> raise_error (Stat (path, err_no_such_target))
+  ;;
+
+  let write_file
+        ?(overwrite = false)
+        ?(clock = const_clock 1.0)
+        ~path
+        content
+        fs
+    =
+    let parent = Path.dirname path in
+    match fetch ~path:parent fs, fetch ~path fs with
+    | None, _ -> raise_error (Write_file (path, err_no_such_target))
+    | Some _, Some (Directory _) ->
+      raise_error (Write_file (path, err_is_directory))
+    | Some _, Some (File _) when not overwrite ->
+      raise_error (Write_file (path, err_overriden))
+    | Some _, (Some _ | None) ->
+      update
+        ~path
+        (fun ~previous:_ ~path ->
+           let name = Path.basename path in
+           Some (file ~clock ~name content))
+        fs
+  ;;
+
+  let read_file ~path fs =
+    match fetch ~path fs with
+    | None -> raise_error (Read_file (path, err_no_such_target))
+    | Some (Directory _) -> raise_error (Read_file (path, err_is_directory))
+    | Some (File { content; _ }) -> content
+  ;;
+
+  let file_exists ~path fs =
+    match fetch ~path fs with
+    | None -> false
+    | Some _ -> true
+  ;;
+
+  let is_directory ~path fs =
+    match fetch ~path fs with
+    | None -> false
+    | Some item -> is_directory item
+  ;;
+
+  let is_file ~path fs =
+    match fetch ~path fs with
+    | None -> false
+    | Some item -> is_file item
+  ;;
+
+  let read_dir ~path fs =
+    match fetch ~path fs with
+    | None -> raise_error (Read_dir (path, err_no_such_target))
+    | Some (File _) -> raise_error (Read_dir (path, err_is_file))
+    | Some (Directory { content; _ }) ->
+      List.fold_left
+        (fun map elt ->
+           let key = Path.(path / name elt) in
+           Path.Map.add key elt map)
+        Path.Map.empty
+        content
+  ;;
+
+  let is_empty_dir ~path fs =
+    match fetch ~path fs with
+    | None -> raise_error (Read_dir (path, err_no_such_target))
+    | Some (File _) -> raise_error (Read_dir (path, err_is_file))
+    | Some (Directory { content = []; _ }) -> true
+    | Some (Directory _) -> false
+  ;;
+
+  let rm_file ~path fs =
+    match fetch ~path fs with
+    | None -> raise_error (Remove (path, err_no_such_target))
+    | Some (Directory _) -> raise_error (Remove (path, err_is_directory))
+    | Some (File _) -> rm_file ~path fs
+  ;;
+
+  let generic_rm_dir = rm_dir
+
+  let rec rm_dir ?(recursive = false) ~path fs =
+    if recursive
+    then (
+      let rec aux path fs =
+        if is_file ~path fs
+        then rm_file ~path fs
+        else if is_empty_dir ~path fs
+        then rm_dir ~path fs
+        else (
+          let fs =
+            Path.Map.fold (fun path _ fs -> aux path fs) (read_dir ~path fs) fs
+          in
+          rm_dir ~path fs)
+      in
+      aux path fs)
+    else if is_empty_dir ~path fs
+    then generic_rm_dir ~path fs
+    else raise_error (Remove (path, err_not_empty))
+  ;;
+
+  let rm ?(recursive = false) ~path fs =
+    if is_file ~path fs
+    then rm_file ~path fs
+    else if is_directory ~path fs
+    then rm_dir ~recursive ~path fs
+    else raise_error (Remove (path, err_no_such_target))
   ;;
 end
