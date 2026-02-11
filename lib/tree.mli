@@ -222,13 +222,14 @@ module Simple : sig
       {!type:item} located at the given [path]. *)
   val mtime : path:Path.t -> t -> float
 
-  (** [mkdir ?clock ~path] creates the directory referenced by the
-      given [path] with behaviour similar to the Unix command
-      [mkdir]. *)
-  val mkdir : ?clock:(content -> time) -> path:Path.t -> t -> t
-
-  (** [mkdir_p ?clock ~path] creates the directory referenced by the
-      given [path] with behaviour similar to the Unix command
-      [mkdir -p]. *)
-  val mkdir_p : ?clock:(content -> time) -> path:Path.t -> t -> t
+  (** [mkdir ?recursive ?clock ~path] creates the directory referenced
+      by the given [path] with behaviour similar to the Unix command
+      [mkdir] (the [recursive] flag is for [mkdir -p], default is
+      [false]). *)
+  val mkdir
+    :  ?recursive:bool
+    -> ?clock:(content -> time)
+    -> path:Path.t
+    -> t
+    -> t
 end

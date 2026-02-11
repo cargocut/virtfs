@@ -329,7 +329,7 @@ module Simple = struct
     | Stat (p, reason) -> error_s p "stat" "cannot statx" reason
   ;;
 
-  let mkdir ?(clock = const_clock 1.0) ~path fs =
+  let create_dir ?(clock = const_clock 1.0) ~path fs =
     let dname = Path.dirname path in
     match fetch ~path:dname fs, fetch ~path fs with
     | Some _, None ->
@@ -344,7 +344,7 @@ module Simple = struct
     | None, _ -> raise_error (Mkdir (path, err_no_such_target))
   ;;
 
-  let mkdir_p ?(clock = const_clock 1.0) ~path fs =
+  let create_dir_rec ?(clock = const_clock 1.0) ~path fs =
     let rec aux path fs =
       let file = fetch ~path fs in
       match file with
@@ -353,9 +353,15 @@ module Simple = struct
       | None ->
         let p = Path.dirname path in
         let fs = aux p fs in
-        mkdir ~clock ~path fs
+        create_dir ~clock ~path fs
     in
     aux path fs
+  ;;
+
+  let mkdir ?(recursive = false) ?(clock = const_clock 1.0) ~path fs =
+    if recursive
+    then create_dir_rec ~clock ~path fs
+    else create_dir ~clock ~path fs
   ;;
 
   let mtime ~path fs =

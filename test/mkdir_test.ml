@@ -82,7 +82,7 @@ let%expect_test "mkdir_p" =
   let path = Path.abs [ "1-foo"; "bar"; "index.md" ] in
   let f () =
     try
-      let fs = fs |> U.mkdir_p ~clock ~path in
+      let fs = fs |> U.mkdir ~recursive:true ~clock ~path in
       let tm = U.mtime ~path fs in
       tm |> Float.to_string |> print_endline;
       fs |> T.tree |> print_endline
@@ -99,7 +99,7 @@ let%expect_test "mkdir_p" =
   let path = Path.abs [ "1-foo"; "bar" ] in
   let f () =
     try
-      let fs = fs |> U.mkdir_p ~clock ~path in
+      let fs = fs |> U.mkdir ~recursive:true ~clock ~path in
       let tm = U.mtime ~path fs in
       tm |> Float.to_string |> print_endline;
       fs |> T.tree |> print_endline
@@ -129,7 +129,7 @@ let%expect_test "mkdir_p" =
   let path = Path.abs [ "4-foo"; "bar"; "baz"; "storage" ] in
   let f () =
     try
-      let fs = fs |> U.mkdir_p ~clock ~path in
+      let fs = fs |> U.mkdir ~recursive:true ~clock ~path in
       let tm = U.mtime ~path fs in
       tm |> Float.to_string |> print_endline;
       fs |> T.tree |> print_endline
