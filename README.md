@@ -23,3 +23,9 @@ single compact dependency, without dependencies (and without using the
 it easy to use in a
 [Js_of_ocaml](https://ocsigen.org/js_of_ocaml/latest/manual/overview)
 programme).
+
+The library offers a `Path` module for constructing globally portable
+and resolvable file paths. A `Tree` module for describing a file tree,
+and `Tree.Simple`, which mimics (approximately) the behaviour of a
+very limited Unix file system (with only the modification date,
+`mtime`, as metadata).
