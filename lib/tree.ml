@@ -397,7 +397,7 @@ module Simple = struct
         fs
     =
     let parent = Path.dirname path in
-    match fetch ~path fs, fetch ~path:parent fs with
+    match fetch ~path:parent fs, fetch ~path fs with
     | None, _ -> raise_error (Create_file (path, err_no_such_target))
     | Some _, Some (Directory _) ->
       raise_error (Create_file (path, err_is_directory))
