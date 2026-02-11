@@ -296,11 +296,17 @@ module Simple = struct
   type error =
     | Mkdir of Path.t * string
     | Stat of Path.t * string
+    | Create_file of Path.t * string
+    | Read_file of Path.t * string
 
   exception Simple_error of error
 
   let err_file_exists = "File exists"
   let err_no_such_target = "No such file or directory"
+
+  (* let err_is_file = "Is a file" *)
+  let err_is_directory = "Is a directory"
+  let err_overriden = "Cannot be overridden"
 
   let error_s path prim err reason =
     prim ^ ": " ^ err ^ " '" ^ Path.to_string path ^ "': " ^ reason
@@ -327,6 +333,14 @@ module Simple = struct
   let error_to_string = function
     | Mkdir (p, reason) -> error_s p "mkdir" "cannot create directory" reason
     | Stat (p, reason) -> error_s p "stat" "cannot statx" reason
+    | Create_file (p, reason) ->
+      error_s p "create_file" "cannot create file" reason
+    | Read_file (p, reason) -> error_s p "read_file" "cannot read file" reason
+  ;;
+
+  let run ?(finalizer = fun _ -> ()) callback =
+    try finalizer (callback ()) with
+    | Simple_error err -> err |> error_to_string |> prerr_endline
   ;;
 
   let create_dir ?(clock = const_clock 1.0) ~path fs =
@@ -373,5 +387,35 @@ module Simple = struct
            ~none:0.0 (* OKAY: having [0.0] as a default result seems ok. *)
            ~some:(fun { mtime } -> mtime)
     | _ -> raise_error (Stat (path, err_no_such_target))
+  ;;
+
+  let write_file
+        ?(overwrite = false)
+        ?(clock = const_clock 1.0)
+        ~path
+        content
+        fs
+    =
+    let parent = Path.dirname path in
+    match fetch ~path fs, fetch ~path:parent fs with
+    | None, _ -> raise_error (Create_file (path, err_no_such_target))
+    | Some _, Some (Directory _) ->
+      raise_error (Create_file (path, err_is_directory))
+    | Some _, Some (File _) when not overwrite ->
+      raise_error (Create_file (path, err_overriden))
+    | Some _, (Some _ | None) ->
+      update
+        ~path
+        (fun ~previous:_ ~path ->
+           let name = Path.basename path in
+           Some (file ~clock ~name content))
+        fs
+  ;;
+
+  let read_file ~path fs =
+    match fetch ~path fs with
+    | None -> raise_error (Read_file (path, err_no_such_target))
+    | Some (Directory _) -> raise_error (Read_file (path, err_is_directory))
+    | Some (File { content; _ }) -> content
   ;;
 end

@@ -163,7 +163,10 @@ val cat : to_string:('a -> string) -> ('a, 'metadata) t -> Path.t -> string
 module Simple : sig
   (** A truly {b very naive} implementation of a file system where the
       contents of files are strings and their metadata only associates
-      modification dates. *)
+      modification dates.
+
+      The API throws {!exception:Simple_error} exceptions to mimic
+      Unix behaviour. *)
 
   (** {1 Types} *)
 
@@ -218,6 +221,8 @@ module Simple : sig
       parametrized by the [name] of the directory. *)
   val dir : ?clock:string clock -> name:string -> item list -> item
 
+  (** {1 Tree operation} *)
+
   (** [mtime ~path fs] returns the {i modification time} of the given
       {!type:item} located at the given [path]. *)
   val mtime : path:Path.t -> t -> float
@@ -232,4 +237,25 @@ module Simple : sig
     -> path:Path.t
     -> t
     -> t
+
+  (** [write_file ?overwrite ?clock ~path content fs] creates (or
+      overwrites, depending on the [overwrite] flag, default [false])
+      the file [path] with content [content] on the given [fs].*)
+  val write_file
+    :  ?overwrite:bool
+    -> ?clock:(string * content -> time)
+    -> path:Path.t
+    -> string
+    -> t
+    -> t
+
+  (** [read_file ~path fs] Reads the contents of the file referenced
+      by its [path] for a given [fs]. *)
+  val read_file : path:Path.t -> t -> string
+
+  (** {1 Misc} *)
+
+  (** [run ?finalizer callback] runs [callback] and print errors on
+      [stderr]. *)
+  val run : ?finalizer:('a -> unit) -> (unit -> 'a) -> unit
 end
