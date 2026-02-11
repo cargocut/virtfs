@@ -155,6 +155,5 @@ let%expect_test "rm-dir recursive" =
 let%expect_test "rm-dir recursive" =
   let path = Path.root in
   U.run ~finalizer (fun () -> U.rm_dir ~recursive:true ~path fs);
-  [%expect
-    {| |}]
+  [%expect {| |}]
 ;;
