@@ -227,6 +227,25 @@ module Simple : sig
       {!type:item} located at the given [path]. *)
   val mtime : path:Path.t -> t -> float
 
+  (* [file_exists ~path fs] returns [true] if the file/directory
+     exists at the given [path] for the given [fs], [false]
+     otherwise. *)
+  val file_exists : path:Path.t -> t -> bool
+
+  (* [is_directory ~path fs] returns [true] if the directory
+     exists at the given [path] for the given [fs], [false]
+     otherwise (even if the target does not exists). *)
+  val is_directory : path:Path.t -> t -> bool
+
+  (* [is_file ~path fs] returns [true] if the file
+     exists at the given [path] for the given [fs], [false]
+     otherwise (even if the target does not exists). *)
+  val is_file : path:Path.t -> t -> bool
+
+  (** [is_empty_dir ~path fs] returns [true] if the directory located
+      at [path] for the given [fs] is an empty directory. *)
+  val is_empty_dir : path:Path.t -> t -> bool
+
   (** [mkdir ?recursive ?clock ~path] creates the directory referenced
       by the given [path] with behaviour similar to the Unix command
       [mkdir] (the [recursive] flag is for [mkdir -p], default is
@@ -237,6 +256,18 @@ module Simple : sig
     -> path:Path.t
     -> t
     -> t
+
+  (* (\** [rm ~path fs] remove the item by a given [path] (like *)
+  (*     {!val:Tree.rm} but raising exception). *\) *)
+  (* val rm : path:Path.t -> t -> t *)
+
+  (* (\** [rm_file fs path] remove the file by a given [path] (like *)
+  (*     {!val:Tree.rm_file} but raising exception). *\) *)
+  (* val rm_file : path:Path.t -> t -> t *)
+
+  (* (\** [rm_dir fs path] remove the directory by a given [path] (like *)
+  (*     {!val:Tree.rm_dir} but raising exception). *\) *)
+  (* val rm_dir : path:Path.t -> t -> t *)
 
   (** [write_file ?overwrite ?clock ~path content fs] creates (or
       overwrites, depending on the [overwrite] flag, default [false])
@@ -252,6 +283,11 @@ module Simple : sig
   (** [read_file ~path fs] Reads the contents of the file referenced
       by its [path] for a given [fs]. *)
   val read_file : path:Path.t -> t -> string
+
+  (** [read_dir ~path fs] returns the direct children of the directory
+      passed as an argument (in the form of a map of {{!type:item}
+      items} indexed by {{!type:Path.t} Paths}).*)
+  val read_dir : path:Path.t -> t -> item Path.Map.t
 
   (** {1 Misc} *)
 

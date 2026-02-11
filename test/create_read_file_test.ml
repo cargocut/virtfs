@@ -145,6 +145,5 @@ let%expect_test "read_file when not exists" =
 let%expect_test "read_file" =
   let path = Path.abs [ "1-foo"; "bar"; "index.md" ] in
   U.run (fun () -> U.read_file ~path fs) ~finalizer:print_endline;
-  [%expect
-    {| Hello World |}]
+  [%expect {| Hello World |}]
 ;;

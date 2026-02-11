@@ -11,6 +11,7 @@
   tree_core_test
   tree_update_test
   mkdir_test
-  create_read_file_test)
+  create_read_file_test
+  read_dir_test)
  (preprocess
   (pps ppx_expect)))

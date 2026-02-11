@@ -296,15 +296,15 @@ module Simple = struct
   type error =
     | Mkdir of Path.t * string
     | Stat of Path.t * string
-    | Create_file of Path.t * string
+    | Write_file of Path.t * string
     | Read_file of Path.t * string
+    | Read_dir of Path.t * string
 
   exception Simple_error of error
 
   let err_file_exists = "File exists"
   let err_no_such_target = "No such file or directory"
-
-  (* let err_is_file = "Is a file" *)
+  let err_is_file = "Is a file"
   let err_is_directory = "Is a directory"
   let err_overriden = "Cannot be overridden"
 
@@ -333,9 +333,11 @@ module Simple = struct
   let error_to_string = function
     | Mkdir (p, reason) -> error_s p "mkdir" "cannot create directory" reason
     | Stat (p, reason) -> error_s p "stat" "cannot statx" reason
-    | Create_file (p, reason) ->
+    | Write_file (p, reason) ->
       error_s p "create_file" "cannot create file" reason
     | Read_file (p, reason) -> error_s p "read_file" "cannot read file" reason
+    | Read_dir (p, reason) ->
+      error_s p "read_dir" "cannot read directory" reason
   ;;
 
   let run ?(finalizer = fun _ -> ()) callback =
@@ -398,11 +400,11 @@ module Simple = struct
     =
     let parent = Path.dirname path in
     match fetch ~path:parent fs, fetch ~path fs with
-    | None, _ -> raise_error (Create_file (path, err_no_such_target))
+    | None, _ -> raise_error (Write_file (path, err_no_such_target))
     | Some _, Some (Directory _) ->
-      raise_error (Create_file (path, err_is_directory))
+      raise_error (Write_file (path, err_is_directory))
     | Some _, Some (File _) when not overwrite ->
-      raise_error (Create_file (path, err_overriden))
+      raise_error (Write_file (path, err_overriden))
     | Some _, (Some _ | None) ->
       update
         ~path
@@ -417,5 +419,44 @@ module Simple = struct
     | None -> raise_error (Read_file (path, err_no_such_target))
     | Some (Directory _) -> raise_error (Read_file (path, err_is_directory))
     | Some (File { content; _ }) -> content
+  ;;
+
+  let file_exists ~path fs =
+    match fetch ~path fs with
+    | None -> false
+    | Some _ -> true
+  ;;
+
+  let is_directory ~path fs =
+    match fetch ~path fs with
+    | None -> false
+    | Some item -> is_directory item
+  ;;
+
+  let is_file ~path fs =
+    match fetch ~path fs with
+    | None -> false
+    | Some item -> is_file item
+  ;;
+
+  let read_dir ~path fs =
+    match fetch ~path fs with
+    | None -> raise_error (Read_dir (path, err_no_such_target))
+    | Some (File _) -> raise_error (Read_dir (path, err_is_file))
+    | Some (Directory { content; _ }) ->
+      List.fold_left
+        (fun map elt ->
+           let key = Path.(path / name elt) in
+           Path.Map.add key elt map)
+        Path.Map.empty
+        content
+  ;;
+
+  let is_empty_dir ~path fs =
+    match fetch ~path fs with
+    | None -> raise_error (Read_dir (path, err_no_such_target))
+    | Some (File _) -> raise_error (Read_dir (path, err_is_file))
+    | Some (Directory { content = []; _ }) -> true
+    | Some (Directory _) -> false
   ;;
 end
