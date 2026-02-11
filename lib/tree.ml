@@ -281,7 +281,7 @@ let cat ~to_string fs path =
   | Some (File { content; _ }) -> to_string content
 ;;
 
-module Dummy = struct
+module Simple = struct
   (* NOTE: A very minimal implementation of a file system that shares
      some naive characteristics with Unix. As the purpose is to be
      used primarily for testing, its support is fairly basic. *)
@@ -297,7 +297,7 @@ module Dummy = struct
     | Mkdir of Path.t * string
     | Stat of Path.t * string
 
-  exception Dummy_tree of error
+  exception Simple_error of error
 
   let err_file_exists = "File exists"
   let err_no_such_target = "No such file or directory"
@@ -306,21 +306,21 @@ module Dummy = struct
     prim ^ ": " ^ err ^ " '" ^ Path.to_string path ^ "': " ^ reason
   ;;
 
-  let raise_error error = raise (Dummy_tree error)
-  let dummy_clock x _ = x
+  let raise_error error = raise (Simple_error error)
+  let const_clock x _ = x
 
-  let mount ?(clock = dummy_clock 1.0) ~scope children =
+  let mount ?(clock = const_clock 1.0) ~scope children =
     make
       ~scope_metadata:(fun path -> Some { mtime = clock path })
       ~scope
       children
   ;;
 
-  let file ?(clock = dummy_clock 1.0) ~name content =
+  let file ?(clock = const_clock 1.0) ~name content =
     file ~metadata:{ mtime = clock (name, content) } ~name content
   ;;
 
-  let dir ?(clock = dummy_clock 1.0) ~name children =
+  let dir ?(clock = const_clock 1.0) ~name children =
     dir ~metadata:{ mtime = clock name } ~name children
   ;;
 
@@ -329,7 +329,7 @@ module Dummy = struct
     | Stat (p, reason) -> error_s p "stat" "cannot statx" reason
   ;;
 
-  let mkdir ?(clock = dummy_clock 1.0) ~path fs =
+  let mkdir ?(clock = const_clock 1.0) ~path fs =
     let dname = Path.dirname path in
     match fetch ~path:dname fs, fetch ~path fs with
     | Some _, None ->
@@ -344,7 +344,7 @@ module Dummy = struct
     | None, _ -> raise_error (Mkdir (path, err_no_such_target))
   ;;
 
-  let mkdir_p ?(clock = dummy_clock 1.0) ~path fs =
+  let mkdir_p ?(clock = const_clock 1.0) ~path fs =
     let rec aux path fs =
       let file = fetch ~path fs in
       match file with

@@ -158,9 +158,9 @@ val cat : to_string:('a -> string) -> ('a, 'metadata) t -> Path.t -> string
 (** {1 A Dummy File System Implementation}
 
     The implementation is not abstract, which allows generic functions
-    to be used on a [Dummy] tree. *)
+    to be used on a [Simple] tree (mostly used for tests). *)
 
-module Dummy : sig
+module Simple : sig
   (** A truly {b very naive} implementation of a file system where the
       contents of files are strings and their metadata only associates
       modification dates. *)
@@ -196,16 +196,16 @@ module Dummy : sig
   (** Set of all possible errors. *)
   type error
 
-  exception Dummy_tree of error
+  exception Simple_error of error
 
   (** Render an error as an Unix-like error message. *)
   val error_to_string : error -> string
 
   (** {1 Tree construction} *)
 
-  (** [dummy_clock f] creates a constant clock, always returning
+  (** [const_clock f] creates a constant clock, always returning
       [f]. *)
-  val dummy_clock : float -> 'a clock
+  val const_clock : float -> 'a clock
 
   (** [mount ?clock ~scope children] creates a tree using {!val:make}. *)
   val mount : ?clock:Path.t clock -> scope:Path.t -> item list -> t

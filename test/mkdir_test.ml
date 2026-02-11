@@ -4,7 +4,7 @@
    SPDX-License-Identifier: BSD-3-Clause *)
 
 module T = Tree
-module U = T.Dummy
+module U = T.Simple
 
 let fs =
   let open U in
@@ -28,7 +28,7 @@ let%expect_test "mkdir when nested path does not exists" =
   let path = Path.abs [ "1-foo"; "bar"; "baz"; "a-directory" ] in
   let f () =
     try fs |> U.mkdir ~clock ~path |> T.tree |> print_endline with
-    | U.Dummy_tree err -> err |> U.error_to_string |> print_endline
+    | U.Simple_error err -> err |> U.error_to_string |> print_endline
   in
   f ();
   [%expect
@@ -40,7 +40,7 @@ let%expect_test "mkdir when target exists" =
   let path = Path.abs [ "1-foo"; "bar" ] in
   let f () =
     try fs |> U.mkdir ~clock ~path |> T.tree |> print_endline with
-    | U.Dummy_tree err -> err |> U.error_to_string |> print_endline
+    | U.Simple_error err -> err |> U.error_to_string |> print_endline
   in
   f ();
   [%expect {| mkdir: cannot create directory '/1-foo/bar': File exists |}]
@@ -56,7 +56,7 @@ let%expect_test "mkdir" =
       tm |> Float.to_string |> print_endline;
       fs |> T.tree |> print_endline
     with
-    | U.Dummy_tree err -> err |> U.error_to_string |> print_endline
+    | U.Simple_error err -> err |> U.error_to_string |> print_endline
   in
   f ();
   [%expect
@@ -87,7 +87,7 @@ let%expect_test "mkdir_p" =
       tm |> Float.to_string |> print_endline;
       fs |> T.tree |> print_endline
     with
-    | U.Dummy_tree err -> err |> U.error_to_string |> print_endline
+    | U.Simple_error err -> err |> U.error_to_string |> print_endline
   in
   f ();
   [%expect
@@ -104,7 +104,7 @@ let%expect_test "mkdir_p" =
       tm |> Float.to_string |> print_endline;
       fs |> T.tree |> print_endline
     with
-    | U.Dummy_tree err -> err |> U.error_to_string |> print_endline
+    | U.Simple_error err -> err |> U.error_to_string |> print_endline
   in
   f ();
   [%expect
@@ -134,7 +134,7 @@ let%expect_test "mkdir_p" =
       tm |> Float.to_string |> print_endline;
       fs |> T.tree |> print_endline
     with
-    | U.Dummy_tree err -> err |> U.error_to_string |> print_endline
+    | U.Simple_error err -> err |> U.error_to_string |> print_endline
   in
   f ();
   [%expect
