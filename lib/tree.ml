@@ -292,10 +292,21 @@ module Dummy = struct
   type content = string
   type nonrec item = (content, metadata) item
   type nonrec t = (content, metadata) t
-  type error = Mkdir of Path.t * string
+
+  type error =
+    | Mkdir of Path.t * string
+    | Stat of Path.t * string
 
   exception Dummy_tree of error
 
+  let err_file_exists = "File exists"
+  let err_no_such_target = "No such file or directory"
+
+  let error_s path prim err reason =
+    prim ^ ": " ^ err ^ " '" ^ Path.to_string path ^ "': " ^ reason
+  ;;
+
+  let raise_error error = raise (Dummy_tree error)
   let dummy_clock x _ = x
 
   let mount ?(clock = dummy_clock 1.0) ~scope children =
@@ -313,15 +324,10 @@ module Dummy = struct
     dir ~metadata:{ mtime = clock name } ~name children
   ;;
 
-  let error_s path prim err reason =
-    prim ^ ": " ^ err ^ " '" ^ Path.to_string path ^ "': " ^ reason
-  ;;
-
   let error_to_string = function
     | Mkdir (p, reason) -> error_s p "mkdir" "cannot create directory" reason
+    | Stat (p, reason) -> error_s p "stat" "cannot statx" reason
   ;;
-
-  let raise_error error = raise (Dummy_tree error)
 
   let mkdir ?(clock = dummy_clock 1.0) ~path fs =
     let dname = Path.dirname path in
@@ -334,15 +340,15 @@ module Dummy = struct
            let item = dir ~clock ~name:bname [] in
            Some item)
         fs
-    | _, Some _ -> raise_error (Mkdir (path, "File exists"))
-    | None, _ -> raise_error (Mkdir (path, "No such file or directory"))
+    | _, Some _ -> raise_error (Mkdir (path, err_file_exists))
+    | None, _ -> raise_error (Mkdir (path, err_no_such_target))
   ;;
 
   let mkdir_p ?(clock = dummy_clock 1.0) ~path fs =
     let rec aux path fs =
       let file = fetch ~path fs in
       match file with
-      | Some (File _) -> raise_error (Mkdir (path, "File exists"))
+      | Some (File _) -> raise_error (Mkdir (path, err_file_exists))
       | Some (Directory _) -> fs
       | None ->
         let p = Path.dirname path in
@@ -352,11 +358,14 @@ module Dummy = struct
     aux path fs
   ;;
 
-  let mtime item =
-    item
-    |> metadata
-    |> Option.fold
-         ~none:0.0 (* OKAY: having [0.0] as a default result seems ok. *)
-         ~some:(fun { mtime } -> mtime)
+  let mtime ~path fs =
+    match fetch ~path fs with
+    | Some item ->
+      item
+      |> metadata
+      |> Option.fold
+           ~none:0.0 (* OKAY: having [0.0] as a default result seems ok. *)
+           ~some:(fun { mtime } -> mtime)
+    | _ -> raise_error (Stat (path, err_no_such_target))
   ;;
 end

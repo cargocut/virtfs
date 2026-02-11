@@ -218,8 +218,9 @@ module Dummy : sig
       parametrized by the [name] of the directory. *)
   val dir : ?clock:string clock -> name:string -> item list -> item
 
-  (** [mtime item] returns the {i modification time} of the given [item]. *)
-  val mtime : item -> float
+  (** [mtime ~path fs] returns the {i modification time} of the given
+      {!type:item} located at the given [path]. *)
+  val mtime : path:Path.t -> t -> float
 
   (** [mkdir ?clock ~path] creates the directory referenced by the
       given [path] with behaviour similar to the Unix command

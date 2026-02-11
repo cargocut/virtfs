@@ -6,10 +6,6 @@
 module T = Tree
 module U = T.Dummy
 
-let mtime path fs =
-  fs |> T.fetch ~path |> Option.map U.mtime |> Option.value ~default:0.0
-;;
-
 let fs =
   let open U in
   mount
@@ -56,7 +52,7 @@ let%expect_test "mkdir" =
   let f () =
     try
       let fs = fs |> U.mkdir ~clock ~path in
-      let tm = mtime path fs in
+      let tm = U.mtime ~path fs in
       tm |> Float.to_string |> print_endline;
       fs |> T.tree |> print_endline
     with
@@ -87,7 +83,7 @@ let%expect_test "mkdir_p" =
   let f () =
     try
       let fs = fs |> U.mkdir_p ~clock ~path in
-      let tm = mtime path fs in
+      let tm = U.mtime ~path fs in
       tm |> Float.to_string |> print_endline;
       fs |> T.tree |> print_endline
     with
@@ -104,7 +100,7 @@ let%expect_test "mkdir_p" =
   let f () =
     try
       let fs = fs |> U.mkdir_p ~clock ~path in
-      let tm = mtime path fs in
+      let tm = U.mtime ~path fs in
       tm |> Float.to_string |> print_endline;
       fs |> T.tree |> print_endline
     with
@@ -134,7 +130,7 @@ let%expect_test "mkdir_p" =
   let f () =
     try
       let fs = fs |> U.mkdir_p ~clock ~path in
-      let tm = mtime path fs in
+      let tm = U.mtime ~path fs in
       tm |> Float.to_string |> print_endline;
       fs |> T.tree |> print_endline
     with
