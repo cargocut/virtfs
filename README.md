@@ -30,6 +30,11 @@ and `Tree.Simple`, which mimics (approximately) the behaviour of a
 very limited Unix file system (with only the modification date,
 `mtime`, as metadata).
 
+The library works quite well with the [Primavera
+library](https://github.com/cargocut/primavera) (and other effect
+abstraction systems) to make applications that use the file system as
+a mutable database easily testable.
+
 ## Example
 
 ```ocaml
@@ -47,7 +52,7 @@ will indulge in using modules... the _standard_ approach (and we don't
 need to control continuation here, so using effects is a bit of
 overkill).
 
-> [!INFO]  
+> [!NOTE]  
 > This is just an example, so error handling is not very
 > sophisticated.
 
