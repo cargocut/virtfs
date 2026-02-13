@@ -74,6 +74,14 @@ let split_on_chars pred s =
   String.sub s 0 !j :: !r
 ;;
 
+let list_drop_while pred list =
+  let rec aux = function
+    | x :: xs when pred x -> aux xs
+    | xs -> xs
+  in
+  aux list
+;;
+
 let list_has_suffix ~equal ~suffix list =
   let rec aux suffix list =
     match suffix, list with
@@ -173,7 +181,7 @@ let abs fragments =
   Absolute
     (fragments
      |> from_fragment_list
-     |> List.drop_while (String.equal "..")
+     |> list_drop_while (String.equal "..")
         (* OKAY: When you [cd ..] to the root (["/"]) of a Unix file
            system, you remain at the root. Therefore, ["/.."] =
            ["/"]. Hence the removal of the prefixes [".."]. *))
