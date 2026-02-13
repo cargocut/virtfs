@@ -16,12 +16,100 @@
     the contents of files and the metadata associated with [files] and
     [directories]. *)
 
-(** A tree is a list of items, where an item can be a file or a
-    directory (which is a list of files). *)
-type ('a, 'metadata) item
-
 (** Describes a tree (a directory or file list). *)
 type ('a, 'metadata) t
+
+(** A tree is a list of items, where an item can be a file or a
+    directory (which is a list of files). *)
+
+module Item : sig
+  (** Describes the contents of a file system, which may be files or
+      directories. *)
+
+  (** {1 Representation} *)
+
+  (** Describes an element of the file system. *)
+  type ('a, 'metadata) t = private
+    | File of
+        { name : string
+        ; content : 'a
+        ; metadata : 'metadata option
+        }
+    | Directory of
+        { name : string
+        ; children : ('a, 'metadata) t list
+        ; metadata : 'metadata option
+        }
+
+  (** {1 Building items}
+
+      The core of a tree is its items. [Tree] allows you to describe
+      files and directories, abstracting away the contents of the files
+      as well as the metadata of the directories or files. *)
+
+  (** [dir ?metadata ~name children] creates a directory and takes a
+      list of children. *)
+  val dir
+    :  ?metadata:'metadata
+    -> name:string
+    -> ('a, 'metadata) t list
+    -> ('a, 'metadata) t
+
+  (** [file ?metadata ~name content] creates a file and takes a content. *)
+  val file : ?metadata:'metadata -> name:string -> 'a -> ('a, 'metadata) t
+
+  (** {1 On Items}
+
+      Information about items. *)
+
+  (** [is_file item] returns [true] if the given [item] is a
+      file. [false] otherwise. *)
+  val is_file : ('a, 'metadata) t -> bool
+
+  (** [is_directory item] returns [true] if the given [item] is a
+      directory. [false] otherwise. *)
+  val is_directory : ('a, 'metadata) t -> bool
+
+  (** [name item] returns the name of the given [item]. *)
+  val name : ('a, 'metadata) t -> string
+
+  (** Same of {!val:name} but add a trailing slash if the item is a
+      directory. *)
+  val name_to_string : ('a, 'metadata) t -> string
+
+  (** [has_name ~name item] returns [true] if the given [item] as the
+      given [name]. *)
+  val has_name : name:string -> ('a, 'metadata) t -> bool
+
+  (** [rename new_name item] change the name of the given [item] by
+      [new_name]. *)
+  val rename : string -> ('a, 'metadata) t -> ('a, 'metadata) t
+
+  (** [children item] returns the children of the given [item]. If
+      [item] is a file, it returns an empty list. *)
+  val children : ('a, 'metadata) t -> ('a, 'metadata) t list
+
+  (** [content item] returns the content of the given [item]. Since the
+      content of a directory is a [tree], it use a polymorphic variant
+      to manage the different kind of content. *)
+  val content
+    :  ('a, 'metadata) t
+    -> [ `File of 'a | `Directory of ('a, 'metadata) t list ]
+
+  (** [map_content f item] map [f] on every nested information of the
+      given [item]. *)
+  val map_content : ('a -> 'b) -> ('a, 'metadata) t -> ('b, 'metadata) t
+
+  (** [metadata item] returns the metadata associated to the given
+      [item]. *)
+  val metadata : ('a, 'metadata) t -> 'metadata option
+
+  (** [on_metadata f item] apply [f] on [item] metadata. *)
+  val on_metadata
+    :  ('metadata option -> 'metadata option)
+    -> ('a, 'metadata) t
+    -> ('a, 'metadata) t
+end
 
 (** {1 Building Trees}
 
@@ -35,66 +123,29 @@ type ('a, 'metadata) t
 val make
   :  ?scope_metadata:(Path.t -> 'metadata option)
   -> scope:Path.t
-  -> ('a, 'metadata) item list
+  -> ('a, 'metadata) Item.t list
   -> ('a, 'metadata) t
 
 (** [from_root] is like {!val:make} but using {!val:Path.root} as {i scope}. *)
-val from_root : ('a, 'metadata) item list -> ('a, 'metadata) t
+val from_root : ('a, 'metadata) Item.t list -> ('a, 'metadata) t
 
 (** [from_cwd] is like {!val:make} but using {!val:Path.cwd} as {i scope}. *)
-val from_cwd : ('a, 'metadata) item list -> ('a, 'metadata) t
+val from_cwd : ('a, 'metadata) Item.t list -> ('a, 'metadata) t
 
-(** {2 Building Items}
-
-    The core of a tree is its items. [Tree] allows you to describe
-    files and directories, abstracting away the contents of the files
-    as well as the metadata of the directories or files. *)
-
-(** [dir ?metadata ~name children] creates a directory and takes a
-    list of children. *)
+(** See {!val:Item.dir} *)
 val dir
   :  ?metadata:'metadata
   -> name:string
-  -> ('a, 'metadata) item list
-  -> ('a, 'metadata) item
+  -> ('a, 'metadata) Item.t list
+  -> ('a, 'metadata) Item.t
 
-(** [file ?metadata ~name content] creates a file and takes a content. *)
-val file : ?metadata:'metadata -> name:string -> 'a -> ('a, 'metadata) item
-
-(** {1 On items}
-
-    Information about items. *)
-
-(** [is_file item] returns [true] if the given [item] is a
-    file. [false] otherwise. *)
-val is_file : ('a, 'metadata) item -> bool
-
-(** [is_directory item] returns [true] if the given [item] is a
-    directory. [false] otherwise. *)
-val is_directory : ('a, 'metadata) item -> bool
-
-(** [name item] returns the name of the given [item]. *)
-val name : ('a, 'metadata) item -> string
-
-(** [children item] returns the children of the given [item]. If
-    [item] is a file, it returns an empty list. *)
-val children : ('a, 'metadata) item -> ('a, 'metadata) item list
-
-(** [content item] returns the content of the given [item]. Since the
-    content of a directory is a [tree], it use a polymorphic variant
-    to manage the different kind of content. *)
-val content
-  :  ('a, 'metadata) item
-  -> [ `File of 'a | `Directory of ('a, 'metadata) item list ]
-
-(** [metadata item] returns the metadata associated to the given
-    [item]. *)
-val metadata : ('a, 'metadata) item -> 'metadata option
+(** See {!val:Item.file} *)
+val file : ?metadata:'metadata -> name:string -> 'a -> ('a, 'metadata) Item.t
 
 (** {1 Operation on Trees} *)
 
 (** [fetch ~path fs] try to reach the [item] at the position [path]. *)
-val fetch : path:Path.t -> ('a, 'metadata) t -> ('a, 'metadata) item option
+val fetch : path:Path.t -> ('a, 'metadata) t -> ('a, 'metadata) Item.t option
 
 (** [prism fs scope] returns a sub-tree based on a path ([scope]).*)
 val prism : scope:Path.t -> ('a, 'metadata) t -> ('a, 'metadata) t
@@ -104,9 +155,9 @@ val prism : scope:Path.t -> ('a, 'metadata) t -> ('a, 'metadata) t
     whether the file should be created or deleted. *)
 val update
   :  path:Path.t
-  -> (previous:('a, 'metadata) item option
+  -> (previous:('a, 'metadata) Item.t option
       -> path:Path.t
-      -> ('a, 'metadata) item option)
+      -> ('a, 'metadata) Item.t option)
   -> ('a, 'metadata) t
   -> ('a, 'metadata) t
 
@@ -115,7 +166,7 @@ val update
     created. *)
 val touch
   :  path:Path.t
-  -> ?if_exists:(('a, 'metadata) item -> ('a, 'metadata) item)
+  -> ?if_exists:(('a, 'metadata) Item.t -> ('a, 'metadata) Item.t)
   -> ?metadata:'metadata
   -> 'a
   -> ('a, 'metadata) t
@@ -187,7 +238,7 @@ module Simple : sig
   type content = string
 
   (** Items of the file system. *)
-  type nonrec item = (content, metadata) item
+  type nonrec item = (content, metadata) Item.t
 
   (** Items of the file system. *)
   type nonrec t = (content, metadata) t

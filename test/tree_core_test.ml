@@ -7,8 +7,8 @@ let fetch fs path =
   match Tree.fetch fs ~path with
   | None -> print_endline (Path.to_filename path ^ ": Not found")
   | Some item ->
-    let name = Tree.name item in
-    (match Tree.content item with
+    let name = Tree.Item.name item in
+    (match Tree.Item.content item with
      | `File s -> name ^ ": " ^ s
      | `Directory xs -> Tree.tree (Tree.make ~scope:path xs))
     |> print_endline
