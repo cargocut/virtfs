@@ -3,73 +3,106 @@
 
    SPDX-License-Identifier: BSD-3-Clause *)
 
-type ('a, 'metadata) t =
-  { children : ('a, 'metadata) item list
-  ; scope : Path.t
-  }
-
-and ('a, 'metadata) elt =
-  { name : string
-  ; content : 'a
-  ; metadata : 'metadata option
-  }
-
-and ('a, 'metadata) item =
-  | File of ('a, 'metadata) elt
-  | Directory of (('a, 'metadata) item list, 'metadata) elt
-
-let content = function
-  | File { content; _ } -> `File content
-  | Directory { content; _ } -> `Directory content
-;;
-
-let set_name name = function
-  | File elt -> File { elt with name }
-  | Directory elt -> Directory { elt with name }
-;;
-
-let metadata = function
-  | File { metadata; _ } | Directory { metadata; _ } -> metadata
-;;
-
-let is_file = function
-  | File _ -> true
-  | Directory _ -> false
-;;
-
-let is_directory = function
-  | Directory _ -> true
-  | File _ -> false
-;;
-
-let children = function
-  | Directory { content; _ } -> content
-  | File _ -> []
-;;
-
-let compare_item a b =
-  match a, b with
-  | File { name = a; _ }, File { name = b; _ }
-  | Directory { name = a; _ }, Directory { name = b; _ } -> String.compare a b
-  | File _, Directory _ -> 1
-  | Directory _, File _ -> -1
-;;
-
-(* HACK: To ensure that trees are ordered consistently.*)
-let sort_items xs = List.sort_uniq compare_item xs
-
-let dir ?metadata ~name children =
-  let content = sort_items children in
-  Directory { name; content; metadata }
-;;
-
 let path_to_list p =
   let prefix, f = if Path.is_absolute p then "", Path.abs else ".", Path.rel
   and fragments = Path.to_list p in
   f, prefix :: fragments
 ;;
 
-let file ?metadata ~name content = File { name; content; metadata }
+module Item = struct
+  type ('a, 'metadata) t =
+    | File of
+        { name : string
+        ; content : 'a
+        ; metadata : 'metadata option
+        }
+    | Directory of
+        { name : string
+        ; children : ('a, 'metadata) t list
+        ; metadata : 'metadata option
+        }
+
+  let compare a b =
+    match a, b with
+    | File { name = a; _ }, File { name = b; _ }
+    | Directory { name = a; _ }, Directory { name = b; _ } -> String.compare a b
+    | File _, Directory _ -> 1
+    | Directory _, File _ -> -1
+  ;;
+
+  (* HACK: To ensure that trees are ordered consistently.*)
+  let sort xs = List.sort_uniq compare xs
+
+  let dir ?metadata ~name children =
+    let children = sort children in
+    Directory { name; children; metadata }
+  ;;
+
+  let file ?metadata ~name content = File { name; content; metadata }
+
+  let name_to_string = function
+    | File { name; _ } -> name
+    | Directory { name; _ } -> name ^ "/"
+  ;;
+
+  let name = function
+    | File { name; _ } -> name
+    | Directory { name; _ } -> name
+  ;;
+
+  let has_name ~name:given = function
+    | File { name; _ } | Directory { name; _ } -> String.equal name given
+  ;;
+
+  let content = function
+    | File { content; _ } -> `File content
+    | Directory { children; _ } -> `Directory children
+  ;;
+
+  let rename name = function
+    | File elt -> File { elt with name }
+    | Directory elt -> Directory { elt with name }
+  ;;
+
+  let rec map_content on_file = function
+    | File elt -> File { elt with content = on_file elt.content }
+    | Directory elt ->
+      Directory
+        { elt with children = List.map (map_content on_file) elt.children }
+  ;;
+
+  let on_metadata f = function
+    | File elt -> File { elt with metadata = f elt.metadata }
+    | Directory elt -> Directory { elt with metadata = f elt.metadata }
+  ;;
+
+  let metadata = function
+    | File { metadata; _ } | Directory { metadata; _ } -> metadata
+  ;;
+
+  let is_file = function
+    | File _ -> true
+    | Directory _ -> false
+  ;;
+
+  let is_directory = function
+    | Directory _ -> true
+    | File _ -> false
+  ;;
+
+  let children = function
+    | Directory { children; _ } -> children
+    | File _ -> []
+  ;;
+end
+
+type ('a, 'metadata) t =
+  { children : ('a, 'metadata) Item.t list
+  ; scope : Path.t
+  }
+
+let dir = Item.dir
+let file = Item.file
 
 let make ?(scope_metadata = fun _ -> None) ~scope list =
   let rec aux s = function
@@ -87,17 +120,6 @@ let make ?(scope_metadata = fun _ -> None) ~scope list =
 let from_root list = make ~scope:Path.root list
 let from_cwd list = make ~scope:Path.cwd list
 
-let name_to_string = function
-  | File { name; _ } -> name
-  | Directory { name; _ } -> name ^ "/"
-;;
-
-let name = name_to_string
-
-let has_name ~name:given = function
-  | File { name; _ } | Directory { name; _ } -> String.equal name given
-;;
-
 let resolve_path scope path =
   if Path.is_absolute scope
   then Path.resolve ~from:scope path
@@ -112,16 +134,16 @@ let fetch ~path fs =
     | x :: xs, [ name ] ->
       (* We are on the [basename] of the path; if the names are
          equivalent, we return the item. *)
-      if has_name ~name x
+      if Item.has_name ~name x
       then Some x
       else
         (* Otherwise, we continue to traverse the tree. *)
         aux xs path
-    | (Directory { content; _ } as x) :: xs, name :: ps ->
+    | (Item.Directory { children; _ } as x) :: xs, name :: ps ->
       (* In a directory case, if the nases are equivalent, we traverse
          into the directory. *)
-      if has_name ~name x
-      then aux content ps
+      if Item.has_name ~name x
+      then aux children ps
       else
         (* Otherwise, we continue to traverse the tree. *)
         aux xs path
@@ -134,8 +156,8 @@ let fetch ~path fs =
 let prism ~scope fs =
   match fetch fs ~path:scope with
   | None -> make ~scope []
-  | Some (File _ as f) -> make ~scope [ f ]
-  | Some (Directory { content; _ }) -> make ~scope content
+  | Some (Item.File _ as f) -> make ~scope [ f ]
+  | Some (Directory { children; _ }) -> make ~scope children
 ;;
 
 let fold_callback acc
@@ -143,8 +165,8 @@ let fold_callback acc
   (* HACK: Ensure the order preservation after inserting an
      element. *)
   function
-  | None -> sort_items acc
-  | Some x -> sort_items (x :: acc)
+  | None -> Item.sort acc
+  | Some x -> Item.sort (x :: acc)
 ;;
 
 let update ~path:in_path callback fs =
@@ -161,7 +183,7 @@ let update ~path:in_path callback fs =
       callback ~previous:None ~path:in_path |> fold_callback acc
     | item :: fs_xs, [ name ] ->
       (* We crossed the path. *)
-      if has_name ~name item
+      if Item.has_name ~name item
       then (
         (* If the item has the correct name, we apply the callback. *)
         let new_acc = acc @ fs_xs in
@@ -175,15 +197,15 @@ let update ~path:in_path callback fs =
         (* The file does not have the correct name; we must continue
            traversing. *)
         aux (item :: acc) fs_xs [ name ]
-    | ( (Directory { metadata; content; name = dirname } as cdir) :: fs_xs
+    | ( (Item.Directory { metadata; children; name = dirname } as cdir) :: fs_xs
       , name :: xs ) ->
       (* We arrive in a directory and the path is not complete. *)
-      if has_name ~name cdir
+      if Item.has_name ~name cdir
       then (
         (* The item has the right name, so we can dive into the
            crossing. *)
-        let new_dir = dir ?metadata ~name:dirname (aux [] content xs) in
-        new_dir :: (acc @ fs_xs) |> sort_items)
+        let new_dir = dir ?metadata ~name:dirname (aux [] children xs) in
+        new_dir :: (acc @ fs_xs) |> Item.sort)
       else
         (* The name is invalid, so we continue browsing the current
            directory. *)
@@ -191,7 +213,7 @@ let update ~path:in_path callback fs =
     | [], name :: path_xs ->
       (* We need continue to create a tree structure. *)
       let new_dir = dir ~name (aux [] [] path_xs) in
-      new_dir :: acc |> sort_items
+      new_dir :: acc |> Item.sort
     | x :: fs_xs, path ->
       (* Not in the right position, let's continue the iteration. *)
       aux (x :: acc) fs_xs path
@@ -235,7 +257,7 @@ let mv ~target ~source fs =
     and name = Path.basename target in
     update
       ~path:target
-      (fun ~previous:_ ~path:_ -> Some (set_name name item))
+      (fun ~previous:_ ~path:_ -> Some (Item.rename name item))
       new_fs
 ;;
 
@@ -246,25 +268,25 @@ let mv ~target ~source fs =
 
 let ls ?scope fs =
   match Option.bind scope (fun path -> fetch ~path fs) with
-  | None -> fs.children |> List.map name_to_string
-  | Some (File _ as f) -> [ name_to_string f ]
-  | Some (Directory { content; _ }) -> List.map name_to_string content
+  | None -> fs.children |> List.map Item.name_to_string
+  | Some (Item.File _ as f) -> [ Item.name_to_string f ]
+  | Some (Directory { children; _ }) -> List.map Item.name_to_string children
 ;;
 
 let nested_print level term =
   let c = String.make (level * 2) ' ' in
-  c ^ "└─" ^ name_to_string term
+  c ^ "└─" ^ Item.name_to_string term
 ;;
 
 let tree fs =
   let rec aux level acc = function
     | [] -> acc
-    | (File _ as term) :: xs ->
+    | (Item.File _ as term) :: xs ->
       let f = nested_print level term in
       aux level (acc ^ "\n" ^ f) xs
-    | (Directory { content; _ } as term) :: xs ->
+    | (Directory { children; _ } as term) :: xs ->
       let f = nested_print level term in
-      let a = aux (succ level) (acc ^ "\n" ^ f) content in
+      let a = aux (succ level) (acc ^ "\n" ^ f) children in
       aux level a xs
   in
   aux 0 "" fs.children
@@ -290,7 +312,7 @@ module Simple = struct
   type 'a clock = 'a -> time
   type metadata = { mtime : time }
   type content = string
-  type nonrec item = (content, metadata) item
+  type nonrec item = (content, metadata) Item.t
   type nonrec t = (content, metadata) t
 
   type error =
@@ -387,7 +409,7 @@ module Simple = struct
     match fetch ~path fs with
     | Some item ->
       item
-      |> metadata
+      |> Item.metadata
       |> Option.fold
            ~none:0.0 (* OKAY: having [0.0] as a default result seems ok. *)
            ~some:(fun { mtime } -> mtime)
@@ -433,33 +455,33 @@ module Simple = struct
   let is_directory ~path fs =
     match fetch ~path fs with
     | None -> false
-    | Some item -> is_directory item
+    | Some item -> Item.is_directory item
   ;;
 
   let is_file ~path fs =
     match fetch ~path fs with
     | None -> false
-    | Some item -> is_file item
+    | Some item -> Item.is_file item
   ;;
 
   let read_dir ~path fs =
     match fetch ~path fs with
     | None -> raise_error (Read_dir (path, err_no_such_target))
     | Some (File _) -> raise_error (Read_dir (path, err_is_file))
-    | Some (Directory { content; _ }) ->
+    | Some (Directory { children; _ }) ->
       List.fold_left
         (fun map elt ->
-           let key = Path.(path / name elt) in
+           let key = Path.(path / Item.name elt) in
            Path.Map.add key elt map)
         Path.Map.empty
-        content
+        children
   ;;
 
   let is_empty_dir ~path fs =
     match fetch ~path fs with
     | None -> raise_error (Read_dir (path, err_no_such_target))
     | Some (File _) -> raise_error (Read_dir (path, err_is_file))
-    | Some (Directory { content = []; _ }) -> true
+    | Some (Directory { children = []; _ }) -> true
     | Some (Directory _) -> false
   ;;
 
