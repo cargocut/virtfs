@@ -1,3 +1,7 @@
+### unreleased
+
+- Add an implementation for `Virtfs` ([gr-im](https://github.com/gr-im))
+
 ### v1.0.0
 
 - First release of `virtfs`, exposing the modules `Path`, for
