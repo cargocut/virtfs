@@ -31,11 +31,11 @@ let fs =
     ]
 ;;
 
-let finalizer =
+let finalizer p =
   Path.Map.iter (fun path elt ->
     let ps = Path.to_string path in
     let es = T.Item.name_to_string elt in
-    ps ^ " -> " ^ es |> print_endline)
+    ps ^ " -> " ^ es |> print_endline) p
 ;;
 
 let%expect_test "read_directory without target" =

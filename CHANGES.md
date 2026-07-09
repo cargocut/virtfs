@@ -1,4 +1,4 @@
-### unreleased
+### 1.1.0
 
 - Add an implementation for `Virtfs` ([gr-im](https://github.com/gr-im))
 
