@@ -244,6 +244,99 @@ let cat ~to_string fs path =
   | Some (File { content; _ }) -> to_string content
 ;;
 
+let mix_metadata _ meta1 meta2 =
+  (* NOTE: Keep the defined metadata by default. *)
+  match meta1, meta2 with
+  | Some x, None | _, Some x -> Some x
+  | None, None -> None
+;;
+
+let rec insert_aux
+          ?(seen = [])
+          ?(give_up = Conflict.retain `Previous)
+          ?(on_metadata = mix_metadata)
+          ?(on_conflict = Conflict.rename_current (fun x -> x ^ ".rej"))
+          path
+          children
+          item
+  =
+  let name = Item.name item in
+  let parent_path = path in
+  let path = Path.(path / name) in
+  let perform_give_up acc previous xs =
+    match give_up ~previous ~current:item path with
+    | `Neither -> Item.sort (List.rev_append acc xs)
+    | `Previous -> Item.sort (List.rev_append acc (previous :: xs))
+    | `Current -> Item.sort (List.rev_append acc (item :: xs))
+  in
+  let rec aux acc = function
+    | [] -> Item.sort (item :: children)
+    | x :: xs when Item.has_name ~name x ->
+      if List.exists (String.equal name) seen
+      then
+        (* NOTE: renaming is cyclic, let's give up! *)
+        perform_give_up acc x xs
+      else (
+        let resolved =
+          resolve_aux on_metadata give_up on_conflict path x item
+        in
+        (* NOTE: the items keeping the conflicting name settle here, the renamed
+           ones are inserted again, so that a collision introduced by
+           the resolution is a conflict like any other. *)
+        match List.partition (Item.has_name ~name) resolved with
+        | _ :: _ :: _, _ ->
+          (* NOTE: The resolution is ambiguous. *)
+          perform_give_up acc x xs
+        | s, r ->
+          List.fold_left
+            (insert_aux
+               ~seen:(name :: seen)
+               ~on_metadata
+               ~on_conflict
+               ~give_up
+               parent_path)
+            (Item.sort (List.rev_append acc (s @ xs)))
+            r)
+    | x :: xs -> aux (x :: acc) xs
+  in
+  aux [] children
+
+and resolve_aux on_metadata give_up on_conflict path previous current =
+  match previous, current with
+  | ( Item.Directory { name; children = previous_children; metadata }
+    , Item.Directory { children; metadata = new_metadata; _ } ) ->
+    (* NOTE: on two directory, there is no concrete conflict. *)
+    let metadata = on_metadata path metadata new_metadata in
+    let children =
+      List.fold_left
+        (insert_aux ~on_metadata ~give_up ~on_conflict path)
+        previous_children
+        children
+    in
+    [ Item.dir ?metadata ~name children ]
+  | _, _ -> on_conflict ~previous ~current path
+;;
+
+let insert_items ?scope ?on_metadata ?on_conflict ?give_up items fs =
+  (* NOTE: the items are first lifted into a tree sharing the scope of
+     [fs] (or the given [scope], resolved against it), so that merging
+     the two lists of children positions them at the right place. *)
+  let scope =
+    match scope with
+    | None -> fs.scope
+    | Some scope -> resolve_path fs.scope scope
+  in
+  let { children; _ } = make ~scope items
+  and path = if Path.is_absolute scope then Path.root else Path.cwd in
+  { fs with
+    children =
+      List.fold_left
+        (insert_aux ?on_metadata ?give_up ?on_conflict path)
+        fs.children
+        children
+  }
+;;
+
 module Simple = struct
   (* NOTE: A very minimal implementation of a file system that shares
      some naive characteristics with Unix. As the purpose is to be

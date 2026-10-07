@@ -5,4 +5,5 @@
 
 module Path = Path
 module Item = Item
+module Conflict = Conflict
 module Tree = Tree

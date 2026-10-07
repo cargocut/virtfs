@@ -25,4 +25,5 @@ module Path = Path
     (somewhat) the behaviour of Unix file systems. *)
 
 module Item = Item
+module Conflict = Conflict
 module Tree = Tree

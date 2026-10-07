@@ -115,6 +115,27 @@ val mv
   -> ('a, 'metadata) t
   -> ('a, 'metadata) t
 
+(** [insert_items ?scope ?on_metadata ?on_conflict ?give_up items fs] adds
+    [items] to an existing tree, at the {i scope} of [fs] (or at
+    [scope], resolved against it).  [on_conflict] describes what
+    happens when an item is already present, and defaults to
+    {!val:Conflict.rename_current} with the [".rej"]
+    suffix. [on_metadata] allows you to decide arbitrarily how to
+    merge metadata when merging directories. [give_up] is the dreadful
+    function that is called when conflict resolution results in
+    something sadly ambiguous, allowing an arbitrary decision to be
+    made as to which segment to drop. By default, the element that was
+    already present in the tree is retained. *)
+val insert_items
+  :  ?scope:Path.t
+  -> ?on_metadata:
+       (Path.t -> 'metadata option -> 'metadata option -> 'metadata option)
+  -> ?on_conflict:('a, 'metadata) Conflict.resolution
+  -> ?give_up:('a, 'metadata) Conflict.give_up
+  -> ('a, 'metadata) Item.t list
+  -> ('a, 'metadata) t
+  -> ('a, 'metadata) t
+
 (** {1 Misc}
 
     As the purpose of the virtual file system is primarily for
