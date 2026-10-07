@@ -24,7 +24,7 @@ type ('a, 'metadata) t
 
 (** {1 Building Trees}
 
-    Building a tree generally involves lifting a list of {{!type:item}
+    Building a tree generally involves lifting a list of {{!type:Item.t}
     items}. *)
 
 (** [make ?scope_metadata ?scope items] builds a tree. The [scope]
