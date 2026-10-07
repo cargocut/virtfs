@@ -35,7 +35,7 @@ let finalizer p =
   Path.Map.iter
     (fun path elt ->
        let ps = Path.to_string path in
-       let es = T.Item.name_to_string elt in
+       let es = Item.name_to_string elt in
        ps ^ " -> " ^ es |> print_endline)
     p
 ;;
