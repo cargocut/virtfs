@@ -180,12 +180,14 @@ let unfold
       ?(keep_root = true)
       ({ scope = default_scope; _ } as fs)
   =
-  let current_scope = Option.value ~default:default_scope scope in
+  let current_scope =
+    Option.fold ~none:default_scope ~some:(resolve_path default_scope) scope
+  in
   let children =
     match fetch ~path:current_scope fs with
     | Some (Item.Directory { children; _ }) -> children
     | Some (Item.File _) | None ->
-      (* NOTE: unfolding files make no sens. *)
+      (* NOTE: unfolding files make no sense. *)
       []
   in
   let rec aux current_scope acc children =

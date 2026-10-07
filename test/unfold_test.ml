@@ -250,8 +250,7 @@ let%expect_test "expand all on a prism" =
 let%expect_test "expand all on a prism" =
   Tree.unfold ~keep:`Directories ~scope:(Path.rel [ "a"; "a3" ]) base_fs
   |> Test_util.dump_path_set;
-  [%expect
-    {| ./a/a3 |}]
+  [%expect {| ./a/a3 |}]
 ;;
 
 let%expect_test "expand all on a prism" =
@@ -264,4 +263,37 @@ let%expect_test "expand all on a prism" =
     ./a/a3/article-a3-3.md
     ./a/a3/article-a3-4.md
     |}]
+;;
+
+let nested_fs =
+  let open Tree in
+  make
+    ~scope:(Path.rel [ "x" ])
+    [ dir ~metadata:(Some 0) ~name:"d" [ file ~name:"h.md" "h" ]
+    ; file ~name:"f.md" "f"
+    ]
+;;
+
+let%expect_test
+    "unfold with a relative scope is resolved against the tree scope"
+  =
+  Tree.unfold ~scope:(Path.rel [ "d" ]) nested_fs |> Test_util.dump_path_set;
+  [%expect
+    {|
+    ./x/d
+    ./x/d/h.md
+    |}]
+;;
+
+let%expect_test "unfold with a missing scope" =
+  Tree.unfold ~scope:(Path.rel [ "missing" ]) nested_fs
+  |> Test_util.dump_path_set;
+  [%expect {| ./x/missing |}]
+;;
+
+let%expect_test "unfold with a file as scope" =
+  Tree.unfold ~scope:(Path.rel [ "f.md" ]) nested_fs |> Test_util.dump_path_set;
+  Tree.unfold ~keep:`Files ~scope:(Path.rel [ "f.md" ]) nested_fs
+  |> Test_util.dump_path_set;
+  [%expect {| ./x/f.md |}]
 ;;
