@@ -1,3 +1,7 @@
+### 1.2.0
+
+- Add `Tree.unfold` to produce a flat list of all the children of a filesystem tree ([gr-im](https://github.com/gr-im))
+
 ### 1.1.0
 
 - Add an implementation for `Virtfs` ([gr-im](https://github.com/gr-im))

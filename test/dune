@@ -13,6 +13,7 @@
   mkdir_test
   create_read_file_test
   read_dir_test
+  unfold_test
   rm_test)
  (preprocess
   (pps ppx_expect)))

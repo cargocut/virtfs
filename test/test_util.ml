@@ -18,3 +18,4 @@ let dump_bool = function
 ;;
 
 let dump_path path = path |> Path.to_string |> print_endline
+let dump_path_set set = set |> Path.Set.to_list |> List.iter dump_path

@@ -261,6 +261,34 @@ let mv ~target ~source fs =
       new_fs
 ;;
 
+let unfold
+      ?scope
+      ?(keep = `All)
+      ?(keep_root = true)
+      ({ scope = default_scope; _ } as fs)
+  =
+  let current_scope = Option.value ~default:default_scope scope in
+  let { children; _ } = prism ~scope:current_scope fs in
+  let rec aux current_scope acc children =
+    match keep, children with
+    | (`All | `Files), Item.File { name; _ } :: xs ->
+      aux current_scope Path.(Set.add (current_scope / name) acc) xs
+    | (`All | `Files | `Directories), Item.Directory { name; children; _ } :: xs
+      ->
+      let current_path = Path.(current_scope / name) in
+      let new_acc = aux current_path acc children in
+      let new_acc =
+        match keep with
+        | `All | `Directories -> Path.Set.add current_path new_acc
+        | `Files -> new_acc
+      in
+      aux current_scope new_acc xs
+    | _, [] | `Directories, _ -> acc
+  in
+  let res = children |> aux current_scope Path.Set.empty in
+  if keep_root then res else Path.Set.remove current_scope res
+;;
+
 (* OKAY: [ls], [nested_print] and [tree] are essentially the testing
    tool. One could argue that this is leaky abstraction, but since the
    purpose of [Tree] is essentially to provide tools for building unit

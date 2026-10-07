@@ -147,8 +147,22 @@ val file : ?metadata:'metadata -> name:string -> 'a -> ('a, 'metadata) Item.t
 (** [fetch ~path fs] try to reach the [item] at the position [path]. *)
 val fetch : path:Path.t -> ('a, 'metadata) t -> ('a, 'metadata) Item.t option
 
-(** [prism fs scope] returns a sub-tree based on a path ([scope]).*)
+(** [prism ~scope fs ] returns a sub-tree based on a path ([scope]).*)
 val prism : scope:Path.t -> ('a, 'metadata) t -> ('a, 'metadata) t
+
+(** [expand ?scope ?keep ?keep_root fs] expand all child paths of a given
+    [fs] starting from a given scope (if no scope is specified, the
+    function uses the root of the tree). It is possible to collect
+    only files, only directories, or all paths by using [keep]
+    (default: [`All]. By default, the toplevel result (the first
+    element) is the [scope], if you set [keep_root] to [false], the
+    toplevel scope is removed. *)
+val unfold
+  :  ?scope:Path.t
+  -> ?keep:[ `All | `Directories | `Files ]
+  -> ?keep_root:bool
+  -> ('a, 'metadata) t
+  -> Path.Set.t
 
 (** [update ~path callback fs] generic function to modify the filetree,
     it is the [callback] function (returning an option) that describes
