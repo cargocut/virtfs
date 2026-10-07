@@ -181,7 +181,13 @@ let unfold
       ({ scope = default_scope; _ } as fs)
   =
   let current_scope = Option.value ~default:default_scope scope in
-  let { children; _ } = prism ~scope:current_scope fs in
+  let children =
+    match fetch ~path:current_scope fs with
+    | Some (Item.Directory { children; _ }) -> children
+    | Some (Item.File _) | None ->
+      (* NOTE: unfolding files make no sens. *)
+      []
+  in
   let rec aux current_scope acc children =
     match keep, children with
     | (`All | `Files), Item.File { name; _ } :: xs ->
@@ -196,9 +202,15 @@ let unfold
         | `Files -> new_acc
       in
       aux current_scope new_acc xs
-    | _, [] | `Directories, _ -> acc
+    | `Directories, Item.File _ :: xs -> aux current_scope acc xs
+    | _, [] -> acc
   in
-  let res = children |> aux current_scope Path.Set.empty in
+  let res =
+    match keep with
+    | `All | `Directories -> Path.Set.singleton current_scope
+    | `Files -> Path.Set.empty
+  in
+  let res = children |> aux current_scope res in
   if keep_root then res else Path.Set.remove current_scope res
 ;;
 

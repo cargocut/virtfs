@@ -228,12 +228,10 @@ let%expect_test "expand all on a prism" =
   [%expect
     {|
     ./a/a3
-    ./a/a3/a
-    ./a/a3/a/a3
-    ./a/a3/a/a3/article-a3-1.md
-    ./a/a3/a/a3/article-a3-2.md
-    ./a/a3/a/a3/article-a3-3.md
-    ./a/a3/a/a3/article-a3-4.md
+    ./a/a3/article-a3-1.md
+    ./a/a3/article-a3-2.md
+    ./a/a3/article-a3-3.md
+    ./a/a3/article-a3-4.md
     |}]
 ;;
 
@@ -242,10 +240,10 @@ let%expect_test "expand all on a prism" =
   |> Test_util.dump_path_set;
   [%expect
     {|
-    ./a/a3/a/a3/article-a3-1.md
-    ./a/a3/a/a3/article-a3-2.md
-    ./a/a3/a/a3/article-a3-3.md
-    ./a/a3/a/a3/article-a3-4.md
+    ./a/a3/article-a3-1.md
+    ./a/a3/article-a3-2.md
+    ./a/a3/article-a3-3.md
+    ./a/a3/article-a3-4.md
     |}]
 ;;
 
@@ -253,11 +251,7 @@ let%expect_test "expand all on a prism" =
   Tree.unfold ~keep:`Directories ~scope:(Path.rel [ "a"; "a3" ]) base_fs
   |> Test_util.dump_path_set;
   [%expect
-    {|
-    ./a/a3
-    ./a/a3/a
-    ./a/a3/a/a3
-    |}]
+    {| ./a/a3 |}]
 ;;
 
 let%expect_test "expand all on a prism" =
@@ -265,11 +259,9 @@ let%expect_test "expand all on a prism" =
   |> Test_util.dump_path_set;
   [%expect
     {|
-    ./a/a3/a
-    ./a/a3/a/a3
-    ./a/a3/a/a3/article-a3-1.md
-    ./a/a3/a/a3/article-a3-2.md
-    ./a/a3/a/a3/article-a3-3.md
-    ./a/a3/a/a3/article-a3-4.md
+    ./a/a3/article-a3-1.md
+    ./a/a3/article-a3-2.md
+    ./a/a3/article-a3-3.md
+    ./a/a3/article-a3-4.md
     |}]
 ;;
