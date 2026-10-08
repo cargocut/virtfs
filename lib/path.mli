@@ -54,6 +54,10 @@ val basename : t -> string
     [root] and [cwd] is [None]. *)
 val basename_opt : t -> string option
 
+(** [common_prefix a b] returns the most general common prefix between [a]
+    and [b] *)
+val common_prefix : t -> t -> t option
+
 (** {1 Path relocation}
 
     Set of functions that enable the description of path movements. *)

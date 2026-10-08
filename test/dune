@@ -16,6 +16,7 @@
   unfold_test
   rm_test
   insert_items_test
-  insert_clean_slate_test)
+  insert_clean_slate_test
+  common_prefix_test)
  (preprocess
   (pps ppx_expect)))
