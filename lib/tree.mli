@@ -83,8 +83,7 @@ val unfold_with_content
   -> ?keep:[ `All | `Directories | `Files ]
   -> ?keep_root:bool
   -> ('content, 'metadata) t
-  -> [> `Directory of 'metadata option | `File of 'metadata option * 'content ]
-       Path.Map.t
+  -> ('content, 'metadata) Item.t Path.Map.t
 
 (** [update ~path callback fs] generic function to modify the filetree,
     it is the [callback] function (returning an option) that describes
@@ -258,6 +257,12 @@ module Simple : sig
   (** [mtime ~path fs] returns the {i modification time} of the given
       {!type:item} located at the given [path]. *)
   val mtime : path:Path.t -> t -> float
+
+  (** [mtime_from_metadata meta] returns the mtime associated to [metadata]. *)
+  val mtime_from_metadata : metadata option -> float
+
+  (** [mtime_from_item item] returns the mtime associated to [item]. *)
+  val mtime_from_item : item -> float
 
   (* [file_exists ~path fs] returns [true] if the file/directory
      exists at the given [path] for the given [fs], [false]
