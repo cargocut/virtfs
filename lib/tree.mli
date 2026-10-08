@@ -55,6 +55,9 @@ val file : ?metadata:'metadata -> name:string -> 'a -> ('a, 'metadata) Item.t
 
 (** {1 Operation on Trees} *)
 
+(** [scope tree] returns the scope of the [tree]. *)
+val scope : ('a, 'metadata) t -> Path.t
+
 (** [fetch ~path fs] try to reach the [item] at the position [path]. *)
 val fetch : path:Path.t -> ('a, 'metadata) t -> ('a, 'metadata) Item.t option
 

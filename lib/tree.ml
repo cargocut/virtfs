@@ -14,6 +14,8 @@ type ('a, 'metadata) t =
   ; scope : Path.t
   }
 
+let scope { scope; _ } = scope
+
 let equal eq_content eq_metadata { children; scope } other =
   Path.equal scope other.scope
   && List.equal (Item.equal eq_content eq_metadata) children other.children
