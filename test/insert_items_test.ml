@@ -399,3 +399,93 @@ let%expect_test "insert a list with a conflict and a collision" =
         └─c4/
     |}]
 ;;
+
+let make_workspace
+      ?(target_path = Path.rel [ "_site" ])
+      ?(cache_path = Path.rel [ "_cache" ])
+      ?(in_source = [])
+      ?(in_target = [])
+      ?(in_cache = [])
+      ()
+  =
+  let source_tree = Tree.make ~scope:Path.cwd in_source in
+  let target_tree = Tree.make ~scope:target_path in_target in
+  let cache_tree = Tree.make ~scope:cache_path in_cache in
+  Tree.from_cwd []
+  |> Tree.merge Tree.Simple.equal_item source_tree
+  |> Tree.merge Tree.Simple.equal_item target_tree
+  |> Tree.merge Tree.Simple.equal_item cache_tree
+  |> Tree.tree
+  |> print_endline
+;;
+
+let%expect_test "test workspace 1" =
+  make_workspace ();
+  [%expect
+    {|
+    └─./
+      └─_cache/
+      └─_site/
+    |}]
+;;
+
+let%expect_test "test workspace 2" =
+  make_workspace ~target_path:(Path.rel [ "foo" ]) ();
+  [%expect
+    {|
+    └─./
+      └─_cache/
+      └─foo/
+    |}]
+;;
+
+let%expect_test "test workspace 3" =
+  let open Tree.Simple in
+  make_workspace
+    ~in_source:
+      [ file ~name:"foo.md" ""
+      ; dir ~name:"articles" [ file ~name:"list-rev.md" "" ]
+      ]
+    ~in_target:[ dir ~name:"articles" [ file ~name:"list-rev.html" "" ] ]
+    ~in_cache:[ file ~name:".cache" "" ]
+    ();
+  [%expect
+    {|
+    └─./
+      └─_cache/
+        └─.cache
+      └─_site/
+        └─articles/
+          └─list-rev.html
+      └─articles/
+        └─list-rev.md
+      └─foo.md
+    |}]
+;;
+
+let%expect_test "test workspace with two roots" =
+  let open Tree.Simple in
+  (* NOTE: the result seems legit. *)
+  make_workspace
+    ~target_path:(Path.abs [ "foo" ])
+    ~in_source:
+      [ file ~name:"foo.md" ""
+      ; dir ~name:"articles" [ file ~name:"list-rev.md" "" ]
+      ]
+    ~in_target:[ dir ~name:"articles" [ file ~name:"list-rev.html" "" ] ]
+    ~in_cache:[ file ~name:".cache" "" ]
+    ();
+  [%expect
+    {|
+    └─/
+      └─foo/
+        └─articles/
+          └─list-rev.html
+    └─./
+      └─_cache/
+        └─.cache
+      └─articles/
+        └─list-rev.md
+      └─foo.md
+    |}]
+;;

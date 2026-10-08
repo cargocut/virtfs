@@ -400,9 +400,18 @@ let merge ?on_metadata ?on_conflict ?give_up eq fs_a fs_b =
   (* NOTE: the children are already absolute from the root, so they are
      merged as they are: lifting them through [insert_items] would wrap
      them into the scope a second time. *)
-  let path = if Path.is_absolute fs_a.scope then Path.root else Path.cwd in
-  { fs_a with
-    children =
+  let scope_a = scope fs_a
+  and scope_b = scope fs_b in
+  let scope =
+    match Path.common_prefix scope_a scope_b with
+    | None ->
+      (* KLUDGE: Can reach to a two-branch scope. *)
+      scope_a
+    | Some scope -> scope
+  in
+  let path = if Path.is_absolute scope then Path.root else Path.cwd in
+  { scope
+  ; children =
       List.fold_left
         (insert_aux ?on_metadata ?give_up ?on_conflict eq path)
         fs_a.children
