@@ -103,6 +103,17 @@ let inject_into_list ~equal into = function
     aux [] into
 ;;
 
+let common_prefix a b =
+  let rec aux acc = function
+    | x :: xs, y :: ys when String.equal x y -> aux (x :: acc) (xs, ys)
+    | _ -> List.rev acc
+  in
+  match a, b with
+  | Absolute x, Absolute y -> Some (Absolute (aux [] (x, y)))
+  | Relative x, Relative y -> Some (Relative (aux [] (x, y)))
+  | _ -> None
+;;
+
 let list_trim_prefix ~equal ~prefix list =
   let rec aux x y =
     match x, y with
