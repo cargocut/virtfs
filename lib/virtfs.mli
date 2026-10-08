@@ -24,4 +24,6 @@ module Path = Path
     implementation of a very limited version of a system that mimics
     (somewhat) the behaviour of Unix file systems. *)
 
+module Item = Item
+module Conflict = Conflict
 module Tree = Tree

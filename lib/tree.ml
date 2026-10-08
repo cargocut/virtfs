@@ -9,97 +9,15 @@ let path_to_list p =
   f, prefix :: fragments
 ;;
 
-module Item = struct
-  type ('a, 'metadata) t =
-    | File of
-        { name : string
-        ; content : 'a
-        ; metadata : 'metadata option
-        }
-    | Directory of
-        { name : string
-        ; children : ('a, 'metadata) t list
-        ; metadata : 'metadata option
-        }
-
-  let compare a b =
-    match a, b with
-    | File { name = a; _ }, File { name = b; _ }
-    | Directory { name = a; _ }, Directory { name = b; _ } -> String.compare a b
-    | File _, Directory _ -> 1
-    | Directory _, File _ -> -1
-  ;;
-
-  (* HACK: To ensure that trees are ordered consistently.*)
-  let sort xs = List.sort_uniq compare xs
-
-  let dir ?metadata ~name children =
-    let children = sort children in
-    Directory { name; children; metadata }
-  ;;
-
-  let file ?metadata ~name content = File { name; content; metadata }
-
-  let name_to_string = function
-    | File { name; _ } -> name
-    | Directory { name; _ } -> name ^ "/"
-  ;;
-
-  let name = function
-    | File { name; _ } -> name
-    | Directory { name; _ } -> name
-  ;;
-
-  let has_name ~name:given = function
-    | File { name; _ } | Directory { name; _ } -> String.equal name given
-  ;;
-
-  let content = function
-    | File { content; _ } -> `File content
-    | Directory { children; _ } -> `Directory children
-  ;;
-
-  let rename name = function
-    | File elt -> File { elt with name }
-    | Directory elt -> Directory { elt with name }
-  ;;
-
-  let rec map_content on_file = function
-    | File elt -> File { elt with content = on_file elt.content }
-    | Directory elt ->
-      Directory
-        { elt with children = List.map (map_content on_file) elt.children }
-  ;;
-
-  let on_metadata f = function
-    | File elt -> File { elt with metadata = f elt.metadata }
-    | Directory elt -> Directory { elt with metadata = f elt.metadata }
-  ;;
-
-  let metadata = function
-    | File { metadata; _ } | Directory { metadata; _ } -> metadata
-  ;;
-
-  let is_file = function
-    | File _ -> true
-    | Directory _ -> false
-  ;;
-
-  let is_directory = function
-    | Directory _ -> true
-    | File _ -> false
-  ;;
-
-  let children = function
-    | Directory { children; _ } -> children
-    | File _ -> []
-  ;;
-end
-
 type ('a, 'metadata) t =
   { children : ('a, 'metadata) Item.t list
   ; scope : Path.t
   }
+
+let equal eq_content eq_metadata { children; scope } other =
+  Path.equal scope other.scope
+  && List.equal (Item.equal eq_content eq_metadata) children other.children
+;;
 
 let dir = Item.dir
 let file = Item.file
@@ -261,6 +179,79 @@ let mv ~target ~source fs =
       new_fs
 ;;
 
+let unfold_aux
+      empty
+      add
+      remove
+      singleton
+      ?scope
+      ?(keep = `All)
+      ?(keep_root = true)
+      ({ scope = default_scope; _ } as fs)
+  =
+  let current_scope =
+    Option.fold ~none:default_scope ~some:(resolve_path default_scope) scope
+  in
+  let children, metadata =
+    match fetch ~path:current_scope fs with
+    | Some (Item.Directory { children; metadata; _ }) -> children, metadata
+    | Some (Item.File _) | None ->
+      (* NOTE: unfolding files make no sense. *)
+      [], None
+  in
+  let rec aux current_scope acc children =
+    match keep, children with
+    | (`All | `Files), Item.File { name; metadata; content } :: xs ->
+      aux
+        current_scope
+        (add (Path.(current_scope / name), `File (metadata, content)) acc)
+        xs
+    | ( (`All | `Files | `Directories)
+      , Item.Directory { name; children; metadata } :: xs ) ->
+      let current_path = Path.(current_scope / name) in
+      let new_acc = aux current_path acc children in
+      let new_acc =
+        match keep with
+        | `All | `Directories -> add (current_path, `Directory metadata) new_acc
+        | `Files -> new_acc
+      in
+      aux current_scope new_acc xs
+    | `Directories, Item.File _ :: xs -> aux current_scope acc xs
+    | _, [] -> acc
+  in
+  let res =
+    match keep with
+    | `All | `Directories -> singleton (current_scope, `Directory metadata)
+    | `Files -> empty
+  in
+  let res = children |> aux current_scope res in
+  if keep_root then res else remove current_scope res
+;;
+
+let unfold ?scope ?keep ?keep_root fs =
+  unfold_aux
+    Path.Set.empty
+    (fun (path, _) xs -> Path.Set.add path xs)
+    Path.Set.remove
+    (fun (path, _) -> Path.Set.singleton path)
+    ?scope
+    ?keep
+    ?keep_root
+    fs
+;;
+
+let unfold_with_content ?scope ?(keep = `Files) ?keep_root fs =
+  unfold_aux
+    Path.Map.empty
+    (fun (k, v) m -> Path.Map.add k v m)
+    Path.Map.remove
+    (fun (k, v) -> Path.Map.singleton k v)
+    ?scope
+    ~keep
+    ?keep_root
+    fs
+;;
+
 (* OKAY: [ls], [nested_print] and [tree] are essentially the testing
    tool. One could argue that this is leaky abstraction, but since the
    purpose of [Tree] is essentially to provide tools for building unit
@@ -303,6 +294,118 @@ let cat ~to_string fs path =
   | Some (File { content; _ }) -> to_string content
 ;;
 
+let mix_metadata _ meta1 meta2 =
+  (* NOTE: Keep the defined metadata by default. *)
+  match meta1, meta2 with
+  | Some x, None | _, Some x -> Some x
+  | None, None -> None
+;;
+
+let rec insert_aux
+          ?(seen = [])
+          ?(give_up = Conflict.retain `Previous)
+          ?(on_metadata = mix_metadata)
+          ?(on_conflict = Conflict.rename_current (fun x -> x ^ ".rej"))
+          eq
+          path
+          children
+          item
+  =
+  let name = Item.name item in
+  let parent_path = path in
+  let path = Path.(path / name) in
+  let perform_give_up acc previous xs =
+    match give_up ~previous ~current:item path with
+    | `Neither -> Item.sort (List.rev_append acc xs)
+    | `Previous -> Item.sort (List.rev_append acc (previous :: xs))
+    | `Current -> Item.sort (List.rev_append acc (item :: xs))
+  in
+  let rec aux acc = function
+    | [] -> Item.sort (item :: children)
+    | x :: xs when Item.has_name ~name x ->
+      if List.exists (String.equal name) seen
+      then
+        (* NOTE: renaming is cyclic, let's give up! *)
+        perform_give_up acc x xs
+      else (
+        let resolved =
+          resolve_aux eq on_metadata give_up on_conflict path x item
+        in
+        (* NOTE: the items keeping the conflicting name settle here, the renamed
+           ones are inserted again, so that a collision introduced by
+           the resolution is a conflict like any other. *)
+        match List.partition (Item.has_name ~name) resolved with
+        | _ :: _ :: _, _ ->
+          (* NOTE: The resolution is ambiguous. *)
+          perform_give_up acc x xs
+        | s, r ->
+          List.fold_left
+            (insert_aux
+               ~seen:(name :: seen)
+               ~on_metadata
+               ~on_conflict
+               ~give_up
+               eq
+               parent_path)
+            (Item.sort (List.rev_append acc (s @ xs)))
+            r)
+    | x :: xs -> aux (x :: acc) xs
+  in
+  aux [] children
+
+and resolve_aux eq on_metadata give_up on_conflict path previous current =
+  match previous, current with
+  | (Item.File _ as a), (Item.File _ as b) when eq a b ->
+    (* NOTE: on two same files theres is no concrete conflict. *)
+    [ a ]
+  | ( Item.Directory { name; children = previous_children; metadata }
+    , Item.Directory { children; metadata = new_metadata; _ } ) ->
+    (* NOTE: on two directory, there is no concrete conflict. *)
+    let metadata = on_metadata path metadata new_metadata in
+    let children =
+      List.fold_left
+        (insert_aux ~on_metadata ~give_up ~on_conflict eq path)
+        previous_children
+        children
+    in
+    [ Item.dir ?metadata ~name children ]
+  | _, _ -> on_conflict ~previous ~current path
+;;
+
+let insert_items ?scope ?on_metadata ?on_conflict ?give_up eq items fs =
+  (* NOTE: the items are first lifted into a tree sharing the scope of
+     [fs] (or the given [scope], resolved against it), so that merging
+     the two lists of children positions them at the right place. *)
+  let scope =
+    match scope with
+    | None -> fs.scope
+    | Some scope -> resolve_path fs.scope scope
+  in
+  let { children; _ } = make ~scope items
+  and path = if Path.is_absolute scope then Path.root else Path.cwd in
+  { fs with
+    children =
+      List.fold_left
+        (insert_aux ?on_metadata ?give_up ?on_conflict eq path)
+        fs.children
+        children
+  }
+;;
+
+let merge ?on_metadata ?on_conflict ?give_up eq fs_a fs_b =
+  (* NOTE: the children are already absolute from the root, so they are
+     merged as they are: lifting them through [insert_items] would wrap
+     them into the scope a second time. *)
+  let path = if Path.is_absolute fs_a.scope then Path.root else Path.cwd in
+  { fs_a with
+    children =
+      List.fold_left
+        (insert_aux ?on_metadata ?give_up ?on_conflict eq path)
+        fs_a.children
+        fs_b.children
+  }
+;;
+
 module Simple = struct
   (* NOTE: A very minimal implementation of a file system that shares
      some naive characteristics with Unix. As the purpose is to be
@@ -314,6 +417,10 @@ module Simple = struct
   type content = string
   type nonrec item = (content, metadata) Item.t
   type nonrec t = (content, metadata) t
+
+  let eq_meta { mtime = a } { mtime = b } = Float.equal a b
+  let equal = equal String.equal eq_meta
+  let equal_item = Item.equal String.equal eq_meta
 
   type error =
     | Mkdir of Path.t * string

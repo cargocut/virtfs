@@ -1,3 +1,10 @@
+### Unreleased
+
+- Add `Tree.merge` (by [mspwn](https://github.com/mspwn))
+- Add equality functions for `Tree.t`, `Tree.Simple.t` and `Item.t` (by [mspwn](https://github.com/mspwn))
+- Add `Tree.insert_items` + Conflict policies and externalize `Item` module ([gr-im](https://github.com/gr-im) and [mspwn](https://github.com/mspwn))
+- Add `Tree.unfold` and `Tree.unfold_with_content` to produce a flat list of all the children of a filesystem tree ([gr-im](https://github.com/gr-im)  and [mspwn](https://github.com/mspwn))
+
 ### 1.1.0
 
 - Add an implementation for `Virtfs` ([gr-im](https://github.com/gr-im))

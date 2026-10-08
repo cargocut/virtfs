@@ -22,98 +22,9 @@ type ('a, 'metadata) t
 (** A tree is a list of items, where an item can be a file or a
     directory (which is a list of files). *)
 
-module Item : sig
-  (** Describes the contents of a file system, which may be files or
-      directories. *)
-
-  (** {1 Representation} *)
-
-  (** Describes an element of the file system. *)
-  type ('a, 'metadata) t = private
-    | File of
-        { name : string
-        ; content : 'a
-        ; metadata : 'metadata option
-        }
-    | Directory of
-        { name : string
-        ; children : ('a, 'metadata) t list
-        ; metadata : 'metadata option
-        }
-
-  (** {1 Building items}
-
-      The core of a tree is its items. [Tree] allows you to describe
-      files and directories, abstracting away the contents of the files
-      as well as the metadata of the directories or files. *)
-
-  (** [dir ?metadata ~name children] creates a directory and takes a
-      list of children. *)
-  val dir
-    :  ?metadata:'metadata
-    -> name:string
-    -> ('a, 'metadata) t list
-    -> ('a, 'metadata) t
-
-  (** [file ?metadata ~name content] creates a file and takes a content. *)
-  val file : ?metadata:'metadata -> name:string -> 'a -> ('a, 'metadata) t
-
-  (** {1 On Items}
-
-      Information about items. *)
-
-  (** [is_file item] returns [true] if the given [item] is a
-      file. [false] otherwise. *)
-  val is_file : ('a, 'metadata) t -> bool
-
-  (** [is_directory item] returns [true] if the given [item] is a
-      directory. [false] otherwise. *)
-  val is_directory : ('a, 'metadata) t -> bool
-
-  (** [name item] returns the name of the given [item]. *)
-  val name : ('a, 'metadata) t -> string
-
-  (** Same of {!val:name} but add a trailing slash if the item is a
-      directory. *)
-  val name_to_string : ('a, 'metadata) t -> string
-
-  (** [has_name ~name item] returns [true] if the given [item] as the
-      given [name]. *)
-  val has_name : name:string -> ('a, 'metadata) t -> bool
-
-  (** [rename new_name item] change the name of the given [item] by
-      [new_name]. *)
-  val rename : string -> ('a, 'metadata) t -> ('a, 'metadata) t
-
-  (** [children item] returns the children of the given [item]. If
-      [item] is a file, it returns an empty list. *)
-  val children : ('a, 'metadata) t -> ('a, 'metadata) t list
-
-  (** [content item] returns the content of the given [item]. Since the
-      content of a directory is a [tree], it use a polymorphic variant
-      to manage the different kind of content. *)
-  val content
-    :  ('a, 'metadata) t
-    -> [ `File of 'a | `Directory of ('a, 'metadata) t list ]
-
-  (** [map_content f item] map [f] on every nested information of the
-      given [item]. *)
-  val map_content : ('a -> 'b) -> ('a, 'metadata) t -> ('b, 'metadata) t
-
-  (** [metadata item] returns the metadata associated to the given
-      [item]. *)
-  val metadata : ('a, 'metadata) t -> 'metadata option
-
-  (** [on_metadata f item] apply [f] on [item] metadata. *)
-  val on_metadata
-    :  ('metadata option -> 'metadata option)
-    -> ('a, 'metadata) t
-    -> ('a, 'metadata) t
-end
-
 (** {1 Building Trees}
 
-    Building a tree generally involves lifting a list of {{!type:item}
+    Building a tree generally involves lifting a list of {{!type:Item.t}
     items}. *)
 
 (** [make ?scope_metadata ?scope items] builds a tree. The [scope]
@@ -147,8 +58,33 @@ val file : ?metadata:'metadata -> name:string -> 'a -> ('a, 'metadata) Item.t
 (** [fetch ~path fs] try to reach the [item] at the position [path]. *)
 val fetch : path:Path.t -> ('a, 'metadata) t -> ('a, 'metadata) Item.t option
 
-(** [prism fs scope] returns a sub-tree based on a path ([scope]).*)
+(** [prism ~scope fs ] returns a sub-tree based on a path ([scope]).*)
 val prism : scope:Path.t -> ('a, 'metadata) t -> ('a, 'metadata) t
+
+(** [unfold ?scope ?keep ?keep_root fs] expand all child paths of a given
+    [fs] starting from a given scope (if no scope is specified, the
+    function uses the root of the tree). It is possible to collect
+    only files, only directories, or all paths by using [keep]
+    (default: [`All]. By default, the toplevel result (the first
+    element) is the [scope], if you set [keep_root] to [false], the
+    toplevel scope is removed. *)
+val unfold
+  :  ?scope:Path.t
+  -> ?keep:[ `All | `Directories | `Files ]
+  -> ?keep_root:bool
+  -> ('content, 'metadata) t
+  -> Path.Set.t
+
+(** [unfold_with_content ?scope ?keep ?keep_root fs] has the same
+    behaviour of {!val:unfold} but keep the content in map. The
+    default behaviour of [keep] is [`Files]. *)
+val unfold_with_content
+  :  ?scope:Path.t
+  -> ?keep:[ `All | `Directories | `Files ]
+  -> ?keep_root:bool
+  -> ('content, 'metadata) t
+  -> [> `Directory of 'metadata option | `File of 'metadata option * 'content ]
+       Path.Map.t
 
 (** [update ~path callback fs] generic function to modify the filetree,
     it is the [callback] function (returning an option) that describes
@@ -190,6 +126,42 @@ val mv
   -> ('a, 'metadata) t
   -> ('a, 'metadata) t
 
+(** [insert_items ?scope ?on_metadata ?on_conflict ?give_up eq items fs]
+    adds [items] to an existing tree, at the {i scope} of [fs] (or at
+    [scope], resolved against it).  [on_conflict] describes what
+    happens when an item is already present, and defaults to
+    {!val:Conflict.rename_current} with the [".rej"]
+    suffix. [on_metadata] allows you to decide arbitrarily how to
+    merge metadata when merging directories. [give_up] is the dreadful
+    function that is called when conflict resolution results in
+    something sadly ambiguous, allowing an arbitrary decision to be
+    made as to which segment to drop. By default, the element that was
+    already present in the tree is retained. The [eq] function is used
+    to assume that two files are equivalent (and avoiding conflict
+    resolution). *)
+val insert_items
+  :  ?scope:Path.t
+  -> ?on_metadata:
+       (Path.t -> 'metadata option -> 'metadata option -> 'metadata option)
+  -> ?on_conflict:('a, 'metadata) Conflict.resolution
+  -> ?give_up:('a, 'metadata) Conflict.give_up
+  -> (('a, 'metadata) Item.t -> ('a, 'metadata) Item.t -> bool)
+  -> ('a, 'metadata) Item.t list
+  -> ('a, 'metadata) t
+  -> ('a, 'metadata) t
+
+(** [merge ?on_metadata ?on_conflict ?give_up fs_a fs_b] uses
+    {!val:insert_items} for merging two filesystems. *)
+val merge
+  :  ?on_metadata:
+       (Path.t -> 'metadata option -> 'metadata option -> 'metadata option)
+  -> ?on_conflict:('a, 'metadata) Conflict.resolution
+  -> ?give_up:('a, 'metadata) Conflict.give_up
+  -> (('a, 'metadata) Item.t -> ('a, 'metadata) Item.t -> bool)
+  -> ('a, 'metadata) t
+  -> ('a, 'metadata) t
+  -> ('a, 'metadata) t
+
 (** {1 Misc}
 
     As the purpose of the virtual file system is primarily for
@@ -206,6 +178,14 @@ val tree : ('a, 'metadata) t -> string
 (** [cat ~to_string fs path] Returns a string that resembles the
     output of the [cat] command in [Unix] (without concatenation). *)
 val cat : to_string:('a -> string) -> ('a, 'metadata) t -> Path.t -> string
+
+(** [equal a b] returns [true] if [a] and [b] are equal, [false] otherwise. *)
+val equal
+  :  ('content -> 'content -> bool)
+  -> ('metadata -> 'metadata -> bool)
+  -> ('content, 'metadata) t
+  -> ('content, 'metadata) t
+  -> bool
 
 (** {1 A Dummy File System Implementation}
 
@@ -346,4 +326,10 @@ module Simple : sig
   (** [run ?finalizer callback] runs [callback] and print errors on
       [stderr]. *)
   val run : ?finalizer:('a -> unit) -> (unit -> 'a) -> unit
+
+  (** [equal a b] returns [true] if [a] and [b] are equal, [false] otherwise. *)
+  val equal : t -> t -> bool
+
+  (** Equality between {!type:item}. *)
+  val equal_item : item -> item -> bool
 end

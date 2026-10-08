@@ -10,7 +10,7 @@ module Simple = struct
   type 'a clock = 'a -> time
   type metadata = { mtime : time }
   type content = string
-  type nonrec item = (content, metadata) Tree.Item.t
+  type nonrec item = (content, metadata) Item.t
   type nonrec t = (content, metadata) Tree.t
 
   type error =
@@ -107,7 +107,7 @@ module Simple = struct
     match Tree.fetch ~path fs with
     | Some item ->
       item
-      |> Tree.Item.metadata
+      |> Item.metadata
       |> Option.fold
            ~none:0.0 (* OKAY: having [0.0] as a default result seems ok. *)
            ~some:(fun { mtime } -> mtime)
@@ -153,13 +153,13 @@ module Simple = struct
   let is_directory ~path fs =
     match Tree.fetch ~path fs with
     | None -> false
-    | Some item -> Tree.Item.is_directory item
+    | Some item -> Item.is_directory item
   ;;
 
   let is_file ~path fs =
     match Tree.fetch ~path fs with
     | None -> false
-    | Some item -> Tree.Item.is_file item
+    | Some item -> Item.is_file item
   ;;
 
   let read_dir ~path fs =
@@ -169,7 +169,7 @@ module Simple = struct
     | Some (Directory { children; _ }) ->
       List.fold_left
         (fun map elt ->
-           let key = Path.(path / Tree.Item.name elt) in
+           let key = Path.(path / Item.name elt) in
            Path.Map.add key elt map)
         Path.Map.empty
         children
