@@ -14,6 +14,8 @@ type ('a, 'metadata) t =
   ; scope : Path.t
   }
 
+let scope { scope; _ } = scope
+
 let equal eq_content eq_metadata { children; scope } other =
   Path.equal scope other.scope
   && List.equal (Item.equal eq_content eq_metadata) children other.children
@@ -192,40 +194,42 @@ let unfold_aux
   let current_scope =
     Option.fold ~none:default_scope ~some:(resolve_path default_scope) scope
   in
-  let children, metadata =
-    match fetch ~path:current_scope fs with
-    | Some (Item.Directory { children; metadata; _ }) -> children, metadata
-    | Some (Item.File _) | None ->
-      (* NOTE: unfolding files make no sense. *)
-      [], None
-  in
-  let rec aux current_scope acc children =
-    match keep, children with
-    | (`All | `Files), Item.File { name; metadata; content } :: xs ->
-      aux
-        current_scope
-        (add (Path.(current_scope / name), `File (metadata, content)) acc)
-        xs
-    | ( (`All | `Files | `Directories)
-      , Item.Directory { name; children; metadata } :: xs ) ->
-      let current_path = Path.(current_scope / name) in
-      let new_acc = aux current_path acc children in
-      let new_acc =
-        match keep with
-        | `All | `Directories -> add (current_path, `Directory metadata) new_acc
-        | `Files -> new_acc
-      in
-      aux current_scope new_acc xs
-    | `Directories, Item.File _ :: xs -> aux current_scope acc xs
-    | _, [] -> acc
-  in
-  let res =
-    match keep with
-    | `All | `Directories -> singleton (current_scope, `Directory metadata)
-    | `Files -> empty
-  in
-  let res = children |> aux current_scope res in
-  if keep_root then res else remove current_scope res
+  match fetch ~path:current_scope fs with
+  | Some (Item.Directory { children; metadata; name = base_name }) ->
+    let rec aux current_scope acc children =
+      match keep, children with
+      | (`All | `Files), (Item.File { name; _ } as item) :: xs ->
+        aux current_scope (add (Path.(current_scope / name), item) acc) xs
+      | ( (`All | `Files | `Directories)
+        , (Item.Directory { name; children; _ } as item) :: xs ) ->
+        let current_path = Path.(current_scope / name) in
+        let new_acc = aux current_path acc children in
+        let new_acc =
+          match keep with
+          | `All | `Directories -> add (current_path, item) new_acc
+          | `Files -> new_acc
+        in
+        aux current_scope new_acc xs
+      | `Directories, Item.File _ :: xs -> aux current_scope acc xs
+      | _, [] -> acc
+    in
+    let res =
+      match keep with
+      | `All | `Directories ->
+        singleton (current_scope, Item.dir ~name:base_name ?metadata [])
+      | `Files -> empty
+    in
+    let res = children |> aux current_scope res in
+    if keep_root then res else remove current_scope res
+  | Some (Item.File _ as item) ->
+    (* NOTE: the file is the root of the unfolding, so it obeys [keep]
+       and [keep_root] like any other item. *)
+    (match keep, keep_root with
+     | (`All | `Files), true -> singleton (current_scope, item)
+     | (`All | `Files), false | `Directories, _ -> empty)
+  | None ->
+    (* NOTE: If the scope does not exists, it return an empty result. *)
+    empty
 ;;
 
 let unfold ?scope ?keep ?keep_root fs =
@@ -512,14 +516,18 @@ module Simple = struct
     else create_dir ~clock ~path fs
   ;;
 
+  let mtime_from_metadata metadata =
+    metadata
+    |> Option.fold
+         ~none:0.0 (* OKAY: having [0.0] as a default result seems ok. *)
+         ~some:(fun { mtime } -> mtime)
+  ;;
+
+  let mtime_from_item item = item |> Item.metadata |> mtime_from_metadata
+
   let mtime ~path fs =
     match fetch ~path fs with
-    | Some item ->
-      item
-      |> Item.metadata
-      |> Option.fold
-           ~none:0.0 (* OKAY: having [0.0] as a default result seems ok. *)
-           ~some:(fun { mtime } -> mtime)
+    | Some item -> mtime_from_item item
     | _ -> raise_error (Stat (path, err_no_such_target))
   ;;
 

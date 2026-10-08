@@ -271,6 +271,8 @@ let nested_fs =
     ~scope:(Path.rel [ "x" ])
     [ dir ~metadata:(Some 0) ~name:"d" [ file ~name:"h.md" "h" ]
     ; file ~name:"f.md" "f"
+    ; file ~name:"ff.md" "ff"
+    ; file ~name:"fff.md" "fff"
     ]
 ;;
 
@@ -288,14 +290,26 @@ let%expect_test
 let%expect_test "unfold with a missing scope" =
   Tree.unfold ~scope:(Path.rel [ "missing" ]) nested_fs
   |> Test_util.dump_path_set;
-  [%expect {| ./x/missing |}]
+  [%expect {| |}]
 ;;
 
 let%expect_test "unfold with a file as scope" =
   Tree.unfold ~scope:(Path.rel [ "f.md" ]) nested_fs |> Test_util.dump_path_set;
-  Tree.unfold ~keep:`Files ~scope:(Path.rel [ "f.md" ]) nested_fs
+  Tree.unfold ~keep:`Directories ~scope:(Path.rel [ "ff.md" ]) nested_fs
   |> Test_util.dump_path_set;
-  [%expect {| ./x/f.md |}]
+  Tree.unfold ~keep:`Files ~scope:(Path.rel [ "fff.md" ]) nested_fs
+  |> Test_util.dump_path_set;
+  Tree.unfold
+    ~keep:`Files
+    ~keep_root:false
+    ~scope:(Path.rel [ "ff.md" ])
+    nested_fs
+  |> Test_util.dump_path_set;
+  [%expect
+    {|
+    ./x/f.md
+    ./x/fff.md
+    |}]
 ;;
 
 let%expect_test "expand content with content" =

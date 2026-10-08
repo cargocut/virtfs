@@ -1,5 +1,7 @@
 ### Unreleased
 
+- Addd `Tree.scope` for retreiving the scope of a `tree` (by [gr-im](https://github.com/gr-im))
+- Add helpers for retreiving mtime for item and metadata of `Tree.Simple` (by [gr-im](https://github.com/gr-im))
 - Add `Tree.merge` (by [mspwn](https://github.com/mspwn))
 - Add equality functions for `Tree.t`, `Tree.Simple.t` and `Item.t` (by [mspwn](https://github.com/mspwn))
 - Add `Tree.insert_items` + Conflict policies and externalize `Item` module ([gr-im](https://github.com/gr-im) and [mspwn](https://github.com/mspwn))

@@ -30,9 +30,13 @@ let dump_path_map m map =
   |> Path.Map.to_list
   |> List.iter (fun (path, subject) ->
     match subject with
-    | `Directory meta ->
-      print_endline (Path.to_string path ^ "/ " ^ metadata_to_string m meta)
-    | `File (meta, content) ->
+    | Item.Directory { metadata; _ } ->
+      print_endline (Path.to_string path ^ "/ " ^ metadata_to_string m metadata)
+    | File { metadata; content; _ } ->
       print_endline
-        (Path.to_string path ^ " " ^ metadata_to_string m meta ^ ": " ^ content))
+        (Path.to_string path
+         ^ " "
+         ^ metadata_to_string m metadata
+         ^ ": "
+         ^ content))
 ;;
