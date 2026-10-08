@@ -7,7 +7,7 @@ let base_fs =
   let open Tree in
   from_cwd
     [ dir
-        ~metadata:(Some 0)
+        ~metadata:0
         ~name:"a"
         [ dir
             ~name:"a1"
@@ -296,4 +296,167 @@ let%expect_test "unfold with a file as scope" =
   Tree.unfold ~keep:`Files ~scope:(Path.rel [ "f.md" ]) nested_fs
   |> Test_util.dump_path_set;
   [%expect {| ./x/f.md |}]
+;;
+
+let%expect_test "expand content with content" =
+  Tree.unfold_with_content base_fs |> Test_util.dump_path_map string_of_int;
+  [%expect
+    {|
+    ./a/a1/article-a1-1.md <>: 0
+    ./a/a1/article-a1-2.md <>: 1
+    ./a/a2/article-a2-1.md <>: 3
+    ./a/a2/article-a2-2.md <>: 4
+    ./a/a2/article-a2-3.md <>: 5
+    ./a/a2/article-a2-4.md <>: 6
+    ./a/a3/article-a3-1.md <>: 7
+    ./a/a3/article-a3-2.md <>: 8
+    ./a/a3/article-a3-3.md <>: 9
+    ./a/a3/article-a3-4.md <>: 10
+    ./a/a4/foo/bar.md <>: Hello World from A
+    ./a/a4/foo/foobar.md <>: Hello World
+    ./b/b1/article-b1-1.md <>: b1
+    ./b/b2/article-b2-1.md <>: b2
+    ./b/b4/article-b4-1.md <>: b4
+    |}]
+;;
+
+let%expect_test "expand content including directories" =
+  Tree.unfold_with_content ~keep:`All base_fs
+  |> Test_util.dump_path_map string_of_int;
+  [%expect
+    {|
+    .// <>
+    ./a/ <0>
+    ./a/a1/ <>
+    ./a/a1/article-a1-1.md <>: 0
+    ./a/a1/article-a1-2.md <>: 1
+    ./a/a2/ <>
+    ./a/a2/article-a2-1.md <>: 3
+    ./a/a2/article-a2-2.md <>: 4
+    ./a/a2/article-a2-3.md <>: 5
+    ./a/a2/article-a2-4.md <>: 6
+    ./a/a3/ <>
+    ./a/a3/article-a3-1.md <>: 7
+    ./a/a3/article-a3-2.md <>: 8
+    ./a/a3/article-a3-3.md <>: 9
+    ./a/a3/article-a3-4.md <>: 10
+    ./a/a4/ <>
+    ./a/a4/foo/ <>
+    ./a/a4/foo/bar.md <>: Hello World from A
+    ./a/a4/foo/foobar.md <>: Hello World
+    ./b/ <>
+    ./b/b1/ <>
+    ./b/b1/article-b1-1.md <>: b1
+    ./b/b2/ <>
+    ./b/b2/article-b2-1.md <>: b2
+    ./b/b3/ <>
+    ./b/b4/ <>
+    ./b/b4/article-b4-1.md <>: b4
+    ./c/ <>
+    ./c/c1/ <>
+    ./c/c2/ <>
+    ./c/c3/ <>
+    ./c/c4/ <>
+    |}]
+;;
+
+let%expect_test "expand content with only directories" =
+  Tree.unfold_with_content ~keep:`Directories base_fs
+  |> Test_util.dump_path_map string_of_int;
+  [%expect
+    {|
+    .// <>
+    ./a/ <0>
+    ./a/a1/ <>
+    ./a/a2/ <>
+    ./a/a3/ <>
+    ./a/a4/ <>
+    ./a/a4/foo/ <>
+    ./b/ <>
+    ./b/b1/ <>
+    ./b/b2/ <>
+    ./b/b3/ <>
+    ./b/b4/ <>
+    ./c/ <>
+    ./c/c1/ <>
+    ./c/c2/ <>
+    ./c/c3/ <>
+    ./c/c4/ <>
+    |}]
+;;
+
+let%expect_test "expand content with only directories without root" =
+  Tree.unfold_with_content ~keep_root:false ~keep:`Directories base_fs
+  |> Test_util.dump_path_map string_of_int;
+  [%expect
+    {|
+    ./a/ <0>
+    ./a/a1/ <>
+    ./a/a2/ <>
+    ./a/a3/ <>
+    ./a/a4/ <>
+    ./a/a4/foo/ <>
+    ./b/ <>
+    ./b/b1/ <>
+    ./b/b2/ <>
+    ./b/b3/ <>
+    ./b/b4/ <>
+    ./c/ <>
+    ./c/c1/ <>
+    ./c/c2/ <>
+    ./c/c3/ <>
+    ./c/c4/ <>
+    |}]
+;;
+
+let%expect_test "expand content including directories without root" =
+  Tree.unfold_with_content ~keep_root:false ~keep:`All base_fs
+  |> Test_util.dump_path_map string_of_int;
+  [%expect
+    {|
+    ./a/ <0>
+    ./a/a1/ <>
+    ./a/a1/article-a1-1.md <>: 0
+    ./a/a1/article-a1-2.md <>: 1
+    ./a/a2/ <>
+    ./a/a2/article-a2-1.md <>: 3
+    ./a/a2/article-a2-2.md <>: 4
+    ./a/a2/article-a2-3.md <>: 5
+    ./a/a2/article-a2-4.md <>: 6
+    ./a/a3/ <>
+    ./a/a3/article-a3-1.md <>: 7
+    ./a/a3/article-a3-2.md <>: 8
+    ./a/a3/article-a3-3.md <>: 9
+    ./a/a3/article-a3-4.md <>: 10
+    ./a/a4/ <>
+    ./a/a4/foo/ <>
+    ./a/a4/foo/bar.md <>: Hello World from A
+    ./a/a4/foo/foobar.md <>: Hello World
+    ./b/ <>
+    ./b/b1/ <>
+    ./b/b1/article-b1-1.md <>: b1
+    ./b/b2/ <>
+    ./b/b2/article-b2-1.md <>: b2
+    ./b/b3/ <>
+    ./b/b4/ <>
+    ./b/b4/article-b4-1.md <>: b4
+    ./c/ <>
+    ./c/c1/ <>
+    ./c/c2/ <>
+    ./c/c3/ <>
+    ./c/c4/ <>
+    |}]
+;;
+
+let%expect_test "expand content including directories on a specific scope" =
+  Tree.unfold_with_content ~scope:(Path.rel [ "a"; "a2" ]) ~keep:`All base_fs
+  |> Test_util.dump_path_map string_of_int;
+  [%expect
+    {|
+    ./a/a2/ <>
+    ./a/a2/article-a2-1.md <>: 3
+    ./a/a2/article-a2-2.md <>: 4
+    ./a/a2/article-a2-3.md <>: 5
+    ./a/a2/article-a2-4.md <>: 6
+    |}]
 ;;

@@ -179,7 +179,11 @@ let mv ~target ~source fs =
       new_fs
 ;;
 
-let unfold
+let unfold_aux
+      empty
+      add
+      remove
+      singleton
       ?scope
       ?(keep = `All)
       ?(keep_root = true)
@@ -188,24 +192,27 @@ let unfold
   let current_scope =
     Option.fold ~none:default_scope ~some:(resolve_path default_scope) scope
   in
-  let children =
+  let children, metadata =
     match fetch ~path:current_scope fs with
-    | Some (Item.Directory { children; _ }) -> children
+    | Some (Item.Directory { children; metadata; _ }) -> children, metadata
     | Some (Item.File _) | None ->
       (* NOTE: unfolding files make no sense. *)
-      []
+      [], None
   in
   let rec aux current_scope acc children =
     match keep, children with
-    | (`All | `Files), Item.File { name; _ } :: xs ->
-      aux current_scope Path.(Set.add (current_scope / name) acc) xs
-    | (`All | `Files | `Directories), Item.Directory { name; children; _ } :: xs
-      ->
+    | (`All | `Files), Item.File { name; metadata; content } :: xs ->
+      aux
+        current_scope
+        (add (Path.(current_scope / name), `File (metadata, content)) acc)
+        xs
+    | ( (`All | `Files | `Directories)
+      , Item.Directory { name; children; metadata } :: xs ) ->
       let current_path = Path.(current_scope / name) in
       let new_acc = aux current_path acc children in
       let new_acc =
         match keep with
-        | `All | `Directories -> Path.Set.add current_path new_acc
+        | `All | `Directories -> add (current_path, `Directory metadata) new_acc
         | `Files -> new_acc
       in
       aux current_scope new_acc xs
@@ -214,11 +221,35 @@ let unfold
   in
   let res =
     match keep with
-    | `All | `Directories -> Path.Set.singleton current_scope
-    | `Files -> Path.Set.empty
+    | `All | `Directories -> singleton (current_scope, `Directory metadata)
+    | `Files -> empty
   in
   let res = children |> aux current_scope res in
-  if keep_root then res else Path.Set.remove current_scope res
+  if keep_root then res else remove current_scope res
+;;
+
+let unfold ?scope ?keep ?keep_root fs =
+  unfold_aux
+    Path.Set.empty
+    (fun (path, _) xs -> Path.Set.add path xs)
+    Path.Set.remove
+    (fun (path, _) -> Path.Set.singleton path)
+    ?scope
+    ?keep
+    ?keep_root
+    fs
+;;
+
+let unfold_with_content ?scope ?(keep = `Files) ?keep_root fs =
+  unfold_aux
+    Path.Map.empty
+    (fun (k, v) m -> Path.Map.add k v m)
+    Path.Map.remove
+    (fun (k, v) -> Path.Map.singleton k v)
+    ?scope
+    ~keep
+    ?keep_root
+    fs
 ;;
 
 (* OKAY: [ls], [nested_print] and [tree] are essentially the testing

@@ -19,3 +19,10 @@ val dump_bool : bool -> unit
 
 (** [dump_path_set ps] dump the given [ps]. *)
 val dump_path_set : Path.Set.t -> unit
+
+(** [dump_path_map ps] dump the given [ps]. *)
+val dump_path_map
+  :  ('metadata -> string)
+  -> [< `Directory of 'metadata option | `File of 'metadata option * string ]
+       Path.Map.t
+  -> unit

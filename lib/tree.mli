@@ -61,7 +61,7 @@ val fetch : path:Path.t -> ('a, 'metadata) t -> ('a, 'metadata) Item.t option
 (** [prism ~scope fs ] returns a sub-tree based on a path ([scope]).*)
 val prism : scope:Path.t -> ('a, 'metadata) t -> ('a, 'metadata) t
 
-(** [expand ?scope ?keep ?keep_root fs] expand all child paths of a given
+(** [unfold ?scope ?keep ?keep_root fs] expand all child paths of a given
     [fs] starting from a given scope (if no scope is specified, the
     function uses the root of the tree). It is possible to collect
     only files, only directories, or all paths by using [keep]
@@ -72,8 +72,19 @@ val unfold
   :  ?scope:Path.t
   -> ?keep:[ `All | `Directories | `Files ]
   -> ?keep_root:bool
-  -> ('a, 'metadata) t
+  -> ('content, 'metadata) t
   -> Path.Set.t
+
+(** [unfold_with_content ?scope ?keep ?keep_root fs] has the same
+    behaviour of {!val:unfold} but keep the content in map. The
+    default behaviour of [keep] is [`Files]. *)
+val unfold_with_content
+  :  ?scope:Path.t
+  -> ?keep:[ `All | `Directories | `Files ]
+  -> ?keep_root:bool
+  -> ('content, 'metadata) t
+  -> [> `Directory of 'metadata option | `File of 'metadata option * 'content ]
+       Path.Map.t
 
 (** [update ~path callback fs] generic function to modify the filetree,
     it is the [callback] function (returning an option) that describes
