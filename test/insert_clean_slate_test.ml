@@ -42,6 +42,14 @@ let simple_fs : Tree.Simple.t =
     ]
 ;;
 
+let mini_fs : Tree.Simple.t =
+  Tree.(
+    from_cwd
+      [ dir ~name:"foo" [ dir ~name:"baz" [ file ~name:"foobaz" "" ] ]
+      ; dir ~name:"bar" [ file ~name:"barfoo" "" ]
+      ])
+;;
+
 let%expect_test
     "insertion of an empty list from an empty folder from the root should \
      produce the same file system"
@@ -133,5 +141,17 @@ let%expect_test "Do not trigger conflict when file are identical" =
            ]
   in
   Test_util.dump_bool (Tree.Simple.equal simple_fs computed_fs);
+  [%expect {| true |}]
+;;
+
+let%expect_test "Tree.merge is symmetric" =
+  Test_util.dump_bool
+    (Tree.Simple.equal (merge empty_fs mini_fs) (merge mini_fs empty_fs));
+  [%expect {| true |}]
+;;
+
+let%expect_test "Tree.merge is symmetric" =
+  Test_util.dump_bool
+    (Tree.Simple.equal (merge simple_fs mini_fs) (merge mini_fs simple_fs));
   [%expect {| true |}]
 ;;
