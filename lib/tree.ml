@@ -14,6 +14,11 @@ type ('a, 'metadata) t =
   ; scope : Path.t
   }
 
+let equal eq_content eq_metadata { children; scope } other =
+  Path.equal scope other.scope
+  && List.equal (Item.equal eq_content eq_metadata) children other.children
+;;
+
 let dir = Item.dir
 let file = Item.file
 
@@ -362,6 +367,9 @@ module Simple = struct
   type content = string
   type nonrec item = (content, metadata) Item.t
   type nonrec t = (content, metadata) t
+
+  let eq_meta { mtime = a } { mtime = b } = Float.equal a b
+  let equal = equal String.equal eq_meta
 
   type error =
     | Mkdir of Path.t * string

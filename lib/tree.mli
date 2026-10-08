@@ -153,6 +153,14 @@ val tree : ('a, 'metadata) t -> string
     output of the [cat] command in [Unix] (without concatenation). *)
 val cat : to_string:('a -> string) -> ('a, 'metadata) t -> Path.t -> string
 
+(** [equal a b] returns [true] if [a] and [b] are equal, [false] otherwise. *)
+val equal
+  :  ('content -> 'content -> bool)
+  -> ('metadata -> 'metadata -> bool)
+  -> ('content, 'metadata) t
+  -> ('content, 'metadata) t
+  -> bool
+
 (** {1 A Dummy File System Implementation}
 
     The implementation is not abstract, which allows generic functions
@@ -292,4 +300,7 @@ module Simple : sig
   (** [run ?finalizer callback] runs [callback] and print errors on
       [stderr]. *)
   val run : ?finalizer:('a -> unit) -> (unit -> 'a) -> unit
+
+  (** [equal a b] returns [true] if [a] and [b] are equal, [false] otherwise. *)
+  val equal : t -> t -> bool
 end

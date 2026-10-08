@@ -23,6 +23,21 @@ let compare a b =
   | Directory _, File _ -> -1
 ;;
 
+let rec equal eq_content eq_metadata a b =
+  match a, b with
+  | ( File { name = name_a; content = content_a; metadata = meta_a }
+    , File { name = name_b; content = content_b; metadata = meta_b } ) ->
+    String.equal name_a name_b
+    && eq_content content_a content_b
+    && Option.equal eq_metadata meta_a meta_b
+  | ( Directory { name = name_a; children = children_a; metadata = meta_a }
+    , Directory { name = name_b; children = children_b; metadata = meta_b } ) ->
+    String.equal name_a name_b
+    && List.equal (equal eq_content eq_metadata) children_a children_b
+    && Option.equal eq_metadata meta_a meta_b
+  | File _, _ | Directory _, _ -> false
+;;
+
 (* HACK: To ensure that trees are ordered consistently.*)
 let sort xs = List.sort_uniq compare xs
 

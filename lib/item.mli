@@ -92,3 +92,13 @@ val on_metadata
   :  ('metadata option -> 'metadata option)
   -> ('a, 'metadata) t
   -> ('a, 'metadata) t
+
+(** {1 Misc} *)
+
+(** [equal a b] returns [true] if [a] and [b] are equal, [false] otherwise. *)
+val equal
+  :  ('content -> 'content -> bool)
+  -> ('metadata -> 'metadata -> bool)
+  -> ('content, 'metadata) t
+  -> ('content, 'metadata) t
+  -> bool
