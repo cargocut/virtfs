@@ -1,7 +1,8 @@
 ### Unreleased
 
-- Add equality functions for `Tree.t`, `Tree.Simple.t` and `Item.t`
-- Add `Tree.insert_items` + Conflict policies and externalize `Item` module ([gr-im](https://github.com/gr-im))
+- Add `Tree.merge` (by [mspwn](https://github.com/mspwn))
+- Add equality functions for `Tree.t`, `Tree.Simple.t` and `Item.t` (by [mspwn](https://github.com/mspwn))
+- Add `Tree.insert_items` + Conflict policies and externalize `Item` module ([gr-im](https://github.com/gr-im) and [mspwn](https://github.com/mspwn))
 - Add `Tree.unfold` to produce a flat list of all the children of a filesystem tree ([gr-im](https://github.com/gr-im))
 
 ### 1.1.0

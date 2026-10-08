@@ -3,11 +3,16 @@
 
    SPDX-License-Identifier: BSD-3-Clause *)
 
+let insert_items ?scope ?on_metadata ?on_conflict ?give_up items fs =
+  let eq = Item.equal String.equal Int.equal in
+  Tree.insert_items ?scope ?on_metadata ?on_conflict ?give_up eq items fs
+;;
+
 let base_fs =
   let open Tree in
   from_cwd
     [ dir
-        ~metadata:(Some 0)
+        ~metadata:0
         ~name:"a"
         [ dir
             ~name:"a1"
@@ -48,7 +53,7 @@ let base_fs =
 ;;
 
 let%expect_test "insert empty list" =
-  base_fs |> Tree.insert_items [] |> Tree.tree |> print_endline;
+  base_fs |> insert_items [] |> Tree.tree |> print_endline;
   [%expect
     {|
     └─./
@@ -83,7 +88,7 @@ let%expect_test "insert empty list" =
 
 let%expect_test "insert a list" =
   base_fs
-  |> Tree.insert_items
+  |> insert_items
        Item.[ file ~name:"foo" ""; file ~name:"bar" ""; file ~name:"foobar" "" ]
   |> Tree.tree
   |> print_endline;
@@ -124,7 +129,7 @@ let%expect_test "insert a list" =
 
 let%expect_test "insert a list" =
   base_fs
-  |> Tree.insert_items
+  |> insert_items
        ~scope:(Path.rel [ "c"; "c2"; "a-new"; "folder" ])
        Item.[ file ~name:"foo" ""; file ~name:"bar" ""; file ~name:"foobar" "" ]
   |> Tree.tree
@@ -168,7 +173,7 @@ let%expect_test "insert a list" =
 
 let%expect_test "insert a list" =
   base_fs
-  |> Tree.insert_items
+  |> insert_items
        ~scope:(Path.rel [ "a-new"; "folder" ])
        Item.[ file ~name:"foo" ""; file ~name:"bar" ""; file ~name:"foobar" "" ]
   |> Tree.tree
@@ -212,7 +217,7 @@ let%expect_test "insert a list" =
 
 let%expect_test "insert a list with a conflict" =
   base_fs
-  |> Tree.insert_items
+  |> insert_items
        ~scope:(Path.rel [ "a"; "a1" ])
        Item.
          [ file ~name:"foo" ""
@@ -258,7 +263,7 @@ let%expect_test "insert a list with a conflict" =
 
 let%expect_test "insert a list with a conflict with a loop" =
   base_fs
-  |> Tree.insert_items
+  |> insert_items
        ~scope:(Path.rel [ "a"; "a1" ])
        ~on_conflict:(Conflict.rename_current Fun.id)
        Item.
@@ -304,7 +309,7 @@ let%expect_test "insert a list with a conflict with a loop" =
 
 let%expect_test "insert a list with a conflict with a loop and an other giveup" =
   base_fs
-  |> Tree.insert_items
+  |> insert_items
        ~scope:(Path.rel [ "a"; "a1" ])
        ~on_conflict:(Conflict.rename_current Fun.id)
        ~give_up:(Conflict.retain `Neither)
@@ -350,7 +355,7 @@ let%expect_test "insert a list with a conflict with a loop and an other giveup" 
 
 let%expect_test "insert a list with a conflict and a collision" =
   base_fs
-  |> Tree.insert_items
+  |> insert_items
        ~scope:(Path.rel [ "a"; "a1" ])
        ~give_up:(Conflict.retain `Neither)
        Item.

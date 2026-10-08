@@ -15,6 +15,7 @@
   read_dir_test
   unfold_test
   rm_test
-  insert_items_test)
+  insert_items_test
+  insert_clean_slate_test)
  (preprocess
   (pps ppx_expect)))

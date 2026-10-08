@@ -275,6 +275,7 @@ let rec insert_aux
           ?(give_up = Conflict.retain `Previous)
           ?(on_metadata = mix_metadata)
           ?(on_conflict = Conflict.rename_current (fun x -> x ^ ".rej"))
+          eq
           path
           children
           item
@@ -297,7 +298,7 @@ let rec insert_aux
         perform_give_up acc x xs
       else (
         let resolved =
-          resolve_aux on_metadata give_up on_conflict path x item
+          resolve_aux eq on_metadata give_up on_conflict path x item
         in
         (* NOTE: the items keeping the conflicting name settle here, the renamed
            ones are inserted again, so that a collision introduced by
@@ -313,6 +314,7 @@ let rec insert_aux
                ~on_metadata
                ~on_conflict
                ~give_up
+               eq
                parent_path)
             (Item.sort (List.rev_append acc (s @ xs)))
             r)
@@ -320,15 +322,18 @@ let rec insert_aux
   in
   aux [] children
 
-and resolve_aux on_metadata give_up on_conflict path previous current =
+and resolve_aux eq on_metadata give_up on_conflict path previous current =
   match previous, current with
+  | (Item.File _ as a), (Item.File _ as b) when eq a b ->
+    (* NOTE: on two same files theres is no concrete conflict. *)
+    [ a ]
   | ( Item.Directory { name; children = previous_children; metadata }
     , Item.Directory { children; metadata = new_metadata; _ } ) ->
     (* NOTE: on two directory, there is no concrete conflict. *)
     let metadata = on_metadata path metadata new_metadata in
     let children =
       List.fold_left
-        (insert_aux ~on_metadata ~give_up ~on_conflict path)
+        (insert_aux ~on_metadata ~give_up ~on_conflict eq path)
         previous_children
         children
     in
@@ -336,7 +341,7 @@ and resolve_aux on_metadata give_up on_conflict path previous current =
   | _, _ -> on_conflict ~previous ~current path
 ;;
 
-let insert_items ?scope ?on_metadata ?on_conflict ?give_up items fs =
+let insert_items ?scope ?on_metadata ?on_conflict ?give_up eq items fs =
   (* NOTE: the items are first lifted into a tree sharing the scope of
      [fs] (or the given [scope], resolved against it), so that merging
      the two lists of children positions them at the right place. *)
@@ -350,9 +355,23 @@ let insert_items ?scope ?on_metadata ?on_conflict ?give_up items fs =
   { fs with
     children =
       List.fold_left
-        (insert_aux ?on_metadata ?give_up ?on_conflict path)
+        (insert_aux ?on_metadata ?give_up ?on_conflict eq path)
         fs.children
         children
+  }
+;;
+
+let merge ?on_metadata ?on_conflict ?give_up eq fs_a fs_b =
+  (* NOTE: the children are already absolute from the root, so they are
+     merged as they are: lifting them through [insert_items] would wrap
+     them into the scope a second time. *)
+  let path = if Path.is_absolute fs_a.scope then Path.root else Path.cwd in
+  { fs_a with
+    children =
+      List.fold_left
+        (insert_aux ?on_metadata ?give_up ?on_conflict eq path)
+        fs_a.children
+        fs_b.children
   }
 ;;
 
@@ -370,6 +389,7 @@ module Simple = struct
 
   let eq_meta { mtime = a } { mtime = b } = Float.equal a b
   let equal = equal String.equal eq_meta
+  let equal_item = Item.equal String.equal eq_meta
 
   type error =
     | Mkdir of Path.t * string
