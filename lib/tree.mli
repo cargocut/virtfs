@@ -38,10 +38,16 @@ val make
   -> ('a, 'metadata) t
 
 (** [from_root] is like {!val:make} but using {!val:Path.root} as {i scope}. *)
-val from_root : ('a, 'metadata) Item.t list -> ('a, 'metadata) t
+val from_root
+  :  ?scope_metadata:(Path.t -> 'metadata option)
+  -> ('a, 'metadata) Item.t list
+  -> ('a, 'metadata) t
 
 (** [from_cwd] is like {!val:make} but using {!val:Path.cwd} as {i scope}. *)
-val from_cwd : ('a, 'metadata) Item.t list -> ('a, 'metadata) t
+val from_cwd
+  :  ?scope_metadata:(Path.t -> 'metadata option)
+  -> ('a, 'metadata) Item.t list
+  -> ('a, 'metadata) t
 
 (** See {!val:Item.dir} *)
 val dir
@@ -202,28 +208,49 @@ module Simple : sig
       The API throws {!exception:Simple_error} exceptions to mimic
       Unix behaviour. *)
 
+  (** {1 Metadata} *)
+
+  module Metadata : sig
+    (** Describes the metadata associated with a Simple tree. (Essentially a
+        [mtime]). *)
+
+    (** {1 Types} *)
+
+    (** The metadata type is deliberately left abstract to simplify its
+        potential extension. *)
+    type t
+
+    (** The [float] type is used to represent time, in the same way as
+        the Unix module. *)
+    type time = float
+
+    (** A clock is simply a function that produces a value of type
+        {!type:time}. *)
+    type 'a clock = 'a -> time
+
+    (** {1 On data} *)
+
+    (** [const_clock f] creates a constant clock, always returning
+        [f]. *)
+    val const_clock : float -> 'a clock
+
+    (** [make ~mtime ()] build metadata. *)
+    val make : mtime:float -> unit -> t
+
+    (** [from_clock x] build a set of metadata from a given clock. *)
+    val from_clock : 'a clock -> 'a -> t
+  end
+
   (** {1 Types} *)
-
-  (** The [float] type is used to represent time, in the same way as
-      the Unix module. *)
-  type time = float
-
-  (** A clock is simply a function that produces a value of type
-      {!type:time}. *)
-  type 'a clock = 'a -> time
-
-  (** The metadata type is deliberately left abstract to simplify its
-      potential extension. *)
-  type metadata
 
   (** The contents of the files are simple strings. *)
   type content = string
 
   (** Items of the file system. *)
-  type nonrec item = (content, metadata) Item.t
+  type nonrec item = (content, Metadata.t) Item.t
 
   (** Items of the file system. *)
-  type nonrec t = (content, metadata) t
+  type nonrec t = (content, Metadata.t) t
 
   (** {2 Error handling}
 
@@ -240,20 +267,27 @@ module Simple : sig
 
   (** {1 Tree construction} *)
 
-  (** [const_clock f] creates a constant clock, always returning
-      [f]. *)
-  val const_clock : float -> 'a clock
-
   (** [mount ?clock ~scope children] creates a tree using {!val:make}. *)
-  val mount : ?clock:Path.t clock -> scope:Path.t -> item list -> t
+  val mount : ?clock:Path.t Metadata.clock -> scope:Path.t -> item list -> t
+
+  (** [from_root] is like {!val:mount} but using {!val:Path.root} as {i scope}.
+  *)
+  val from_root : ?clock:Path.t Metadata.clock -> item list -> t
+
+  (** [from_cwd] is like {!val:mount} but using {!val:Path.cwd} as {i scope}. *)
+  val from_cwd : ?clock:Path.t Metadata.clock -> item list -> t
 
   (** [file ?clock ~name content] creates a file. The [clock] is
       parametrized by the couple of [name, content]. *)
-  val file : ?clock:(string * content) clock -> name:string -> content -> item
+  val file
+    :  ?clock:(string * content) Metadata.clock
+    -> name:string
+    -> content
+    -> item
 
   (** [dir ?clock ~name children] creates a directory. The [clock] is
       parametrized by the [name] of the directory. *)
-  val dir : ?clock:string clock -> name:string -> item list -> item
+  val dir : ?clock:string Metadata.clock -> name:string -> item list -> item
 
   (** {1 Tree operation} *)
 
@@ -262,7 +296,7 @@ module Simple : sig
   val mtime : path:Path.t -> t -> float
 
   (** [mtime_from_metadata meta] returns the mtime associated to [metadata]. *)
-  val mtime_from_metadata : metadata option -> float
+  val mtime_from_metadata : Metadata.t option -> float
 
   (** [mtime_from_item item] returns the mtime associated to [item]. *)
   val mtime_from_item : item -> float
@@ -292,7 +326,7 @@ module Simple : sig
       [false]). *)
   val mkdir
     :  ?recursive:bool
-    -> ?clock:(content -> time)
+    -> ?clock:content Metadata.clock
     -> path:Path.t
     -> t
     -> t
@@ -314,7 +348,7 @@ module Simple : sig
       the file [path] with content [content] on the given [fs].*)
   val write_file
     :  ?overwrite:bool
-    -> ?clock:(string * content -> time)
+    -> ?clock:(string * content) Metadata.clock
     -> path:Path.t
     -> string
     -> t
@@ -328,6 +362,43 @@ module Simple : sig
       passed as an argument (in the form of a map of {{!type:item}
       items} indexed by {{!type:Path.t} Paths}).*)
   val read_dir : path:Path.t -> t -> item Path.Map.t
+
+  (** Specialized version of [unfold]. *)
+  val unfold
+    :  ?scope:Path.t
+    -> ?keep:[ `All | `Directories | `Files ]
+    -> ?keep_root:bool
+    -> t
+    -> Path.Set.t
+
+  (** Specialized version of [unfold_with_content]. *)
+  val unfold_with_content
+    :  ?scope:Path.t
+    -> ?keep:[ `All | `Directories | `Files ]
+    -> ?keep_root:bool
+    -> t
+    -> item Path.Map.t
+
+  (** Specialized version of [insert_items] *)
+  val insert_items
+    :  ?scope:Path.t
+    -> ?on_metadata:
+         (Path.t -> Metadata.t option -> Metadata.t option -> Metadata.t option)
+    -> ?on_conflict:(content, Metadata.t) Conflict.resolution
+    -> ?give_up:(content, Metadata.t) Conflict.give_up
+    -> item list
+    -> t
+    -> t
+
+  (** Specialized version of [insert_merge] *)
+  val merge
+    :  ?on_metadata:
+         (Path.t -> Metadata.t option -> Metadata.t option -> Metadata.t option)
+    -> ?on_conflict:(content, Metadata.t) Conflict.resolution
+    -> ?give_up:(content, Metadata.t) Conflict.give_up
+    -> t
+    -> t
+    -> t
 
   (** {1 Misc} *)
 

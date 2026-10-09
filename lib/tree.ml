@@ -37,8 +37,8 @@ let make ?(scope_metadata = fun _ -> None) ~scope list =
   { scope; children }
 ;;
 
-let from_root list = make ~scope:Path.root list
-let from_cwd list = make ~scope:Path.cwd list
+let from_root ?scope_metadata list = make ?scope_metadata ~scope:Path.root list
+let from_cwd ?scope_metadata list = make ?scope_metadata ~scope:Path.cwd list
 
 let resolve_path scope path =
   if Path.is_absolute scope
@@ -424,16 +424,27 @@ module Simple = struct
      some naive characteristics with Unix. As the purpose is to be
      used primarily for testing, its support is fairly basic. *)
 
-  type time = float
-  type 'a clock = 'a -> time
-  type metadata = { mtime : time }
-  type content = string
-  type nonrec item = (content, metadata) Item.t
-  type nonrec t = (content, metadata) t
+  module Metadata = struct
+    type time = float
+    type t = { mtime : time }
+    type 'a clock = 'a -> time
 
-  let eq_meta { mtime = a } { mtime = b } = Float.equal a b
-  let equal = equal String.equal eq_meta
-  let equal_item = Item.equal String.equal eq_meta
+    let const_clock x _ = x
+    let make ~mtime () = { mtime }
+    let equal { mtime = a } { mtime = b } = Float.equal a b
+
+    let from_clock clock x =
+      let mtime = clock x in
+      make ~mtime ()
+    ;;
+  end
+
+  type content = string
+  type nonrec item = (content, Metadata.t) Item.t
+  type nonrec t = (content, Metadata.t) t
+
+  let equal = equal String.equal Metadata.equal
+  let equal_item = Item.equal String.equal Metadata.equal
 
   type error =
     | Mkdir of Path.t * string
@@ -457,21 +468,26 @@ module Simple = struct
   ;;
 
   let raise_error error = raise (Simple_error error)
-  let const_clock x _ = x
 
-  let mount ?(clock = const_clock 1.0) ~scope children =
+  let mount ?(clock = Metadata.const_clock 1.0) ~scope children =
     make
-      ~scope_metadata:(fun path -> Some { mtime = clock path })
+      ~scope_metadata:(fun path -> Some (Metadata.make ~mtime:(clock path) ()))
       ~scope
       children
   ;;
 
-  let file ?(clock = const_clock 1.0) ~name content =
-    file ~metadata:{ mtime = clock (name, content) } ~name content
+  let from_root ?clock children = mount ?clock ~scope:Path.root children
+  let from_cwd ?clock children = mount ?clock ~scope:Path.cwd children
+
+  let file ?(clock = Metadata.const_clock 1.0) ~name content =
+    file
+      ~metadata:(Metadata.make ~mtime:(clock (name, content)) ())
+      ~name
+      content
   ;;
 
-  let dir ?(clock = const_clock 1.0) ~name children =
-    dir ~metadata:{ mtime = clock name } ~name children
+  let dir ?(clock = Metadata.const_clock 1.0) ~name children =
+    dir ~metadata:(Metadata.make ~mtime:(clock name) ()) ~name children
   ;;
 
   let error_to_string = function
@@ -490,7 +506,7 @@ module Simple = struct
     | Simple_error err -> err |> error_to_string |> prerr_endline
   ;;
 
-  let create_dir ?(clock = const_clock 1.0) ~path fs =
+  let create_dir ?(clock = Metadata.const_clock 1.0) ~path fs =
     let dname = Path.dirname path in
     match fetch ~path:dname fs, fetch ~path fs with
     | Some _, None ->
@@ -505,7 +521,7 @@ module Simple = struct
     | None, _ -> raise_error (Mkdir (path, err_no_such_target))
   ;;
 
-  let create_dir_rec ?(clock = const_clock 1.0) ~path fs =
+  let create_dir_rec ?(clock = Metadata.const_clock 1.0) ~path fs =
     let rec aux path fs =
       let file = fetch ~path fs in
       match file with
@@ -519,7 +535,7 @@ module Simple = struct
     aux path fs
   ;;
 
-  let mkdir ?(recursive = false) ?(clock = const_clock 1.0) ~path fs =
+  let mkdir ?(recursive = false) ?(clock = Metadata.const_clock 1.0) ~path fs =
     if recursive
     then create_dir_rec ~clock ~path fs
     else create_dir ~clock ~path fs
@@ -529,7 +545,7 @@ module Simple = struct
     metadata
     |> Option.fold
          ~none:0.0 (* OKAY: having [0.0] as a default result seems ok. *)
-         ~some:(fun { mtime } -> mtime)
+         ~some:(fun Metadata.{ mtime } -> mtime)
   ;;
 
   let mtime_from_item item = item |> Item.metadata |> mtime_from_metadata
@@ -542,7 +558,7 @@ module Simple = struct
 
   let write_file
         ?(overwrite = false)
-        ?(clock = const_clock 1.0)
+        ?(clock = Metadata.const_clock 1.0)
         ~path
         content
         fs
@@ -645,4 +661,15 @@ module Simple = struct
     then rm_dir ~recursive ~path fs
     else raise_error (Remove (path, err_no_such_target))
   ;;
+
+  let insert_items ?scope ?on_metadata ?on_conflict ?give_up items fs =
+    insert_items ?scope ?on_metadata ?on_conflict ?give_up equal_item items fs
+  ;;
+
+  let merge ?on_metadata ?on_conflict ?give_up items fs =
+    merge ?on_metadata ?on_conflict ?give_up equal_item items fs
+  ;;
+
+  let unfold = unfold
+  let unfold_with_content = unfold_with_content
 end
