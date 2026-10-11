@@ -114,6 +114,40 @@ let common_prefix a b =
   | _ -> None
 ;;
 
+let leading_parent_dirs xs =
+  let rec aux n = function
+    | ".." :: xs -> aux (succ n) xs
+    | _ -> n
+  in
+  aux 0 xs
+;;
+
+let scope_under ?(strict = false) ~parent path =
+  let rec aux = function
+    | [], [] when strict -> None
+    | [], [] -> Some []
+    | [], (_ :: _ as ys) -> Some ys
+    | _ :: _, [] -> None
+    | x :: xs, y :: ys -> if String.equal x y then aux (xs, ys) else None
+  in
+  match parent, path with
+  | Absolute p, Absolute x | Relative p, Relative x ->
+    (* NOTE: a path escaping above [parent] through [".."] is not scoped by
+       it, even though its fragments start with those of [parent]. *)
+    if leading_parent_dirs x <= leading_parent_dirs p
+    then Option.map (fun x -> Relative x) (aux (p, x))
+    else None
+  | Absolute _, _ | Relative _, _ ->
+    (* NOTE: If parent and path does not share the same kind, *)
+    None
+;;
+
+let is_scoped_by ?strict ~parent p =
+  match scope_under ?strict ~parent p with
+  | Some _ -> true
+  | None -> false
+;;
+
 let list_trim_prefix ~equal ~prefix list =
   let rec aux x y =
     match x, y with
