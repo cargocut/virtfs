@@ -66,7 +66,8 @@ let%expect_test "resolve under scoping" =
     |> Option.map (resolve ~from:(abs [ "foo"; "bar"; "foobar" ]))
   ]
   |> List.iter dump;
-  [%expect {|
+  [%expect
+    {|
     Some (./foo/bar/foobar/a/b/c)
     Some (/foo/bar/foobar/a/b/c)
     |}]

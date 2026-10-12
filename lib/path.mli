@@ -143,7 +143,7 @@ val scope : from:t -> t -> t
     of the child. *)
 val scope_under : ?strict:bool -> parent:t -> t -> t option
 
-(** [is_scoped_by ?strict ~parent path] uses {!val:scoped_under} for
+(** [is_scoped_by ?strict ~parent path] uses {!val:scope_under} for
     defining is [p] is a child of [parent]. *)
 val is_scoped_by : ?strict:bool -> parent:t -> t -> bool
 
