@@ -1,5 +1,6 @@
 ### Unreleased
 
+- Add advanced scoping function for path (by [gr-im](https://github.com/gr-im) and [xvw](https://github.com/xvw))
 - Make `Tree.Simple` less abstract and more usable (by [gr-im](https://github.com/gr-im))
 - Add `Path.common_prefix` (by [gr-im](https://github.com/gr-im))
 - Add `Tree.scope` for retreiving the scope of a `tree` (by [gr-im](https://github.com/gr-im))

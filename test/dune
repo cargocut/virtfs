@@ -17,6 +17,7 @@
   rm_test
   insert_items_test
   insert_clean_slate_test
-  common_prefix_test)
+  common_prefix_test
+  scoping_test)
  (preprocess
   (pps ppx_expect)))

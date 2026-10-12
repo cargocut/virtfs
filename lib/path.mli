@@ -131,6 +131,22 @@ val resolve : from:t -> t -> t
     [resolve ~from:(dirname from)]. *)
 val scope : from:t -> t -> t
 
+(** [scoped_under ?strict ~parent path] returns the portion of [path]
+    below [parent], as a relative path, or [None] when [path] is not
+    under [parent]. It is the inverse of {!val:resolve}:
+    [resolve ~from:parent (scoped_under ~parent path) = path].
+
+    [strict] is used to consider [parent] as a child of [parent].
+
+    Unlike {!val:scope}, [scope_under] can only scope paths that are of
+    the same type (absolute or relative) and whose parent is a prefix
+    of the child. *)
+val scope_under : ?strict:bool -> parent:t -> t -> t option
+
+(** [is_scoped_by ?strict ~parent path] uses {!val:scope_under} for
+    defining is [p] is a child of [parent]. *)
+val is_scoped_by : ?strict:bool -> parent:t -> t -> bool
+
 (** {1 Extension}
 
     Dealing with file extensions. Since the library does not assume
