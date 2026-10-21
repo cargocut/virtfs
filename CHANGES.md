@@ -1,4 +1,4 @@
-### Unreleased
+### 2.0.0
 
 - Add advanced scoping function for path (by [gr-im](https://github.com/gr-im) and [xvw](https://github.com/xvw))
 - Make `Tree.Simple` less abstract and more usable (by [gr-im](https://github.com/gr-im))
