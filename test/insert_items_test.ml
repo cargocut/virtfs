@@ -1,56 +1,52 @@
-(* Copyright (c) 2026, Cargocut and the Virtfs developers.
-   All rights reserved.
+(* Copyright (c) 2026, Cargocut and the Virtfs developers. All rights reserved.
 
    SPDX-License-Identifier: BSD-3-Clause *)
 
 let insert_items ?scope ?on_metadata ?on_conflict ?give_up items fs =
   let eq = Item.equal String.equal Int.equal in
   Tree.insert_items ?scope ?on_metadata ?on_conflict ?give_up eq items fs
-;;
 
 let base_fs =
   let open Tree in
   from_cwd
-    [ dir
-        ~metadata:0
-        ~name:"a"
-        [ dir
-            ~name:"a1"
-            [ file ~name:"article-a1-1.md" "0"
+    [
+      dir ~metadata:0 ~name:"a"
+        [
+          dir ~name:"a1"
+            [
+              file ~name:"article-a1-1.md" "0"
             ; file ~name:"article-a1-2.md" "1"
             ; file ~name:"article-a1-3.md" "1"
             ; file ~name:"article-a1-3.md.rej" "1"
             ]
-        ; dir
-            ~name:"a2"
-            [ file ~name:"article-a2-1.md" "3"
-            ; file ~name:"article-a2-2.md" "4"
+        ; dir ~name:"a2"
+            [
+              file ~name:"article-a2-1.md" "3"; file ~name:"article-a2-2.md" "4"
             ]
-        ; dir
-            ~name:"a3"
-            [ dir
-                ~name:"foo"
-                [ file ~name:"foobar.md" "Hello World"
+        ; dir ~name:"a3"
+            [
+              dir ~name:"foo"
+                [
+                  file ~name:"foobar.md" "Hello World"
                 ; file ~name:"bar.md" "Hello World from A"
                 ]
             ]
         ]
-    ; dir
-        ~name:"b"
-        [ dir ~name:"b1" [ file ~name:"article-b1-1.md" "b1" ]
+    ; dir ~name:"b"
+        [
+          dir ~name:"b1" [ file ~name:"article-b1-1.md" "b1" ]
         ; dir ~name:"b2" [ file ~name:"article-b2-1.md" "b2" ]
         ; dir ~name:"b3" []
         ; dir ~name:"b4" [ file ~name:"article-b4-1.md" "b4" ]
         ]
-    ; dir
-        ~name:"c"
-        [ dir ~name:"c1" []
+    ; dir ~name:"c"
+        [
+          dir ~name:"c1" []
         ; dir ~name:"c2" []
         ; dir ~name:"c3" []
         ; dir ~name:"c4" []
         ]
     ]
-;;
 
 let%expect_test "insert empty list" =
   base_fs |> insert_items [] |> Tree.tree |> print_endline;
@@ -84,7 +80,6 @@ let%expect_test "insert empty list" =
         └─c3/
         └─c4/
     |}]
-;;
 
 let%expect_test "insert a list" =
   base_fs
@@ -125,7 +120,6 @@ let%expect_test "insert a list" =
       └─foo
       └─foobar
     |}]
-;;
 
 let%expect_test "insert a list" =
   base_fs
@@ -169,7 +163,6 @@ let%expect_test "insert a list" =
         └─c3/
         └─c4/
     |}]
-;;
 
 let%expect_test "insert a list" =
   base_fs
@@ -213,14 +206,14 @@ let%expect_test "insert a list" =
         └─c3/
         └─c4/
     |}]
-;;
 
 let%expect_test "insert a list with a conflict" =
   base_fs
   |> insert_items
        ~scope:(Path.rel [ "a"; "a1" ])
        Item.
-         [ file ~name:"foo" ""
+         [
+           file ~name:"foo" ""
          ; file ~name:"bar" ""
          ; file ~name:"article-a1-2.md" ""
          ]
@@ -259,7 +252,6 @@ let%expect_test "insert a list with a conflict" =
         └─c3/
         └─c4/
     |}]
-;;
 
 let%expect_test "insert a list with a conflict with a loop" =
   base_fs
@@ -267,7 +259,8 @@ let%expect_test "insert a list with a conflict with a loop" =
        ~scope:(Path.rel [ "a"; "a1" ])
        ~on_conflict:(Conflict.rename_current Fun.id)
        Item.
-         [ file ~name:"foo" ""
+         [
+           file ~name:"foo" ""
          ; file ~name:"bar" ""
          ; file ~name:"article-a1-2.md" ""
          ]
@@ -305,16 +298,17 @@ let%expect_test "insert a list with a conflict with a loop" =
         └─c3/
         └─c4/
     |}]
-;;
 
-let%expect_test "insert a list with a conflict with a loop and an other giveup" =
+let%expect_test "insert a list with a conflict with a loop and an other giveup"
+    =
   base_fs
   |> insert_items
        ~scope:(Path.rel [ "a"; "a1" ])
        ~on_conflict:(Conflict.rename_current Fun.id)
        ~give_up:(Conflict.retain `Neither)
        Item.
-         [ file ~name:"foo" ""
+         [
+           file ~name:"foo" ""
          ; file ~name:"bar" ""
          ; file ~name:"article-a1-2.md" ""
          ]
@@ -351,7 +345,6 @@ let%expect_test "insert a list with a conflict with a loop and an other giveup" 
         └─c3/
         └─c4/
     |}]
-;;
 
 let%expect_test "insert a list with a conflict and a collision" =
   base_fs
@@ -359,7 +352,8 @@ let%expect_test "insert a list with a conflict and a collision" =
        ~scope:(Path.rel [ "a"; "a1" ])
        ~give_up:(Conflict.retain `Neither)
        Item.
-         [ file ~name:"foo" ""
+         [
+           file ~name:"foo" ""
          ; file ~name:"bar" ""
          ; file ~name:"article-a1-3.md" ""
          ]
@@ -398,16 +392,10 @@ let%expect_test "insert a list with a conflict and a collision" =
         └─c3/
         └─c4/
     |}]
-;;
 
-let make_workspace
-      ?(target_path = Path.rel [ "_site" ])
-      ?(cache_path = Path.rel [ "_cache" ])
-      ?(in_source = [])
-      ?(in_target = [])
-      ?(in_cache = [])
-      ()
-  =
+let make_workspace ?(target_path = Path.rel [ "_site" ])
+    ?(cache_path = Path.rel [ "_cache" ]) ?(in_source = []) ?(in_target = [])
+    ?(in_cache = []) () =
   let source_tree = Tree.make ~scope:Path.cwd in_source in
   let target_tree = Tree.make ~scope:target_path in_target in
   let cache_tree = Tree.make ~scope:cache_path in_cache in
@@ -417,33 +405,29 @@ let make_workspace
   |> Tree.merge Tree.Simple.equal_item cache_tree
   |> Tree.tree
   |> print_endline
-;;
 
 let%expect_test "test workspace 1" =
   make_workspace ();
-  [%expect
-    {|
+  [%expect {|
     └─./
       └─_cache/
       └─_site/
     |}]
-;;
 
 let%expect_test "test workspace 2" =
   make_workspace ~target_path:(Path.rel [ "foo" ]) ();
-  [%expect
-    {|
+  [%expect {|
     └─./
       └─_cache/
       └─foo/
     |}]
-;;
 
 let%expect_test "test workspace 3" =
   let open Tree.Simple in
   make_workspace
     ~in_source:
-      [ file ~name:"foo.md" ""
+      [
+        file ~name:"foo.md" ""
       ; dir ~name:"articles" [ file ~name:"list-rev.md" "" ]
       ]
     ~in_target:[ dir ~name:"articles" [ file ~name:"list-rev.html" "" ] ]
@@ -461,15 +445,14 @@ let%expect_test "test workspace 3" =
         └─list-rev.md
       └─foo.md
     |}]
-;;
 
 let%expect_test "test workspace with two roots" =
   let open Tree.Simple in
   (* NOTE: the result seems legit. *)
-  make_workspace
-    ~target_path:(Path.abs [ "foo" ])
+  make_workspace ~target_path:(Path.abs [ "foo" ])
     ~in_source:
-      [ file ~name:"foo.md" ""
+      [
+        file ~name:"foo.md" ""
       ; dir ~name:"articles" [ file ~name:"list-rev.md" "" ]
       ]
     ~in_target:[ dir ~name:"articles" [ file ~name:"list-rev.html" "" ] ]
@@ -488,4 +471,3 @@ let%expect_test "test workspace with two roots" =
         └─list-rev.md
       └─foo.md
     |}]
-;;

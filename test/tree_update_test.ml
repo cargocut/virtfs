@@ -1,58 +1,55 @@
-(* Copyright (c) 2026, Cargocut and the Virtfs developers.
-   All rights reserved.
+(* Copyright (c) 2026, Cargocut and the Virtfs developers. All rights reserved.
 
    SPDX-License-Identifier: BSD-3-Clause *)
 
 let base_fs =
   let open Tree in
   from_cwd
-    [ dir
-        ~metadata:(Some 0)
-        ~name:"a"
-        [ dir
-            ~name:"a1"
-            [ file ~name:"article-a1-1.md" "0"
-            ; file ~name:"article-a1-2.md" "1"
+    [
+      dir ~metadata:(Some 0) ~name:"a"
+        [
+          dir ~name:"a1"
+            [
+              file ~name:"article-a1-1.md" "0"; file ~name:"article-a1-2.md" "1"
             ]
-        ; dir
-            ~name:"a2"
-            [ file ~name:"article-a2-1.md" "3"
+        ; dir ~name:"a2"
+            [
+              file ~name:"article-a2-1.md" "3"
             ; file ~name:"article-a2-2.md" "4"
             ; file ~name:"article-a2-3.md" "5"
             ; file ~name:"article-a2-4.md" "6"
             ]
-        ; dir
-            ~name:"a3"
-            [ file ~name:"article-a3-1.md" "7"
+        ; dir ~name:"a3"
+            [
+              file ~name:"article-a3-1.md" "7"
             ; file ~name:"article-a3-2.md" "8"
             ; file ~name:"article-a3-3.md" "9"
             ; file ~name:"article-a3-4.md" "10"
             ]
-        ; dir
-            ~name:"a4"
-            [ dir
-                ~name:"foo"
-                [ file ~name:"foobar.md" "Hello World"
+        ; dir ~name:"a4"
+            [
+              dir ~name:"foo"
+                [
+                  file ~name:"foobar.md" "Hello World"
                 ; file ~name:"bar.md" "Hello World from A"
                 ]
             ]
         ]
-    ; dir
-        ~name:"b"
-        [ dir ~name:"b1" [ file ~name:"article-b1-1.md" "b1" ]
+    ; dir ~name:"b"
+        [
+          dir ~name:"b1" [ file ~name:"article-b1-1.md" "b1" ]
         ; dir ~name:"b2" [ file ~name:"article-b2-1.md" "b2" ]
         ; dir ~name:"b3" []
         ; dir ~name:"b4" [ file ~name:"article-b4-1.md" "b4" ]
         ]
-    ; dir
-        ~name:"c"
-        [ dir ~name:"c1" []
+    ; dir ~name:"c"
+        [
+          dir ~name:"c1" []
         ; dir ~name:"c2" []
         ; dir ~name:"c3" []
         ; dir ~name:"c4" []
         ]
     ]
-;;
 
 let%expect_test "A complicated tree" =
   base_fs |> Tree.tree |> print_endline;
@@ -91,7 +88,6 @@ let%expect_test "A complicated tree" =
         └─c3/
         └─c4/
     |}]
-;;
 
 let%expect_test "touch" =
   base_fs
@@ -134,7 +130,6 @@ let%expect_test "touch" =
           └─a-c-file.md
         └─c4/
     |}]
-;;
 
 let%expect_test "rm_file should not impact the file system on directory" =
   base_fs
@@ -176,7 +171,6 @@ let%expect_test "rm_file should not impact the file system on directory" =
         └─c3/
         └─c4/
     |}]
-;;
 
 let%expect_test "rm_dir should not impact the file system on file" =
   base_fs
@@ -218,7 +212,6 @@ let%expect_test "rm_dir should not impact the file system on file" =
         └─c3/
         └─c4/
     |}]
-;;
 
 let%expect_test "rm_file should impact the file system on file" =
   base_fs
@@ -259,7 +252,6 @@ let%expect_test "rm_file should impact the file system on file" =
         └─c3/
         └─c4/
     |}]
-;;
 
 let%expect_test "rm_dir should impact the file system on directory" =
   base_fs |> Tree.rm_dir ~path:(Path.rel [ "c" ]) |> Tree.tree |> print_endline;
@@ -293,7 +285,6 @@ let%expect_test "rm_dir should impact the file system on directory" =
         └─b4/
           └─article-b4-1.md
     |}]
-;;
 
 let%expect_test "rm should impact the file system on directory" =
   base_fs
@@ -330,7 +321,6 @@ let%expect_test "rm should impact the file system on directory" =
         └─c3/
         └─c4/
     |}]
-;;
 
 let%expect_test "rm should impact the file system on directory" =
   base_fs |> Tree.rm ~path:(Path.rel [ "a" ]) |> Tree.tree |> print_endline;
@@ -351,7 +341,6 @@ let%expect_test "rm should impact the file system on directory" =
         └─c3/
         └─c4/
     |}]
-;;
 
 let%expect_test "rm should impact the file system on file" =
   base_fs
@@ -392,11 +381,9 @@ let%expect_test "rm should impact the file system on file" =
         └─c3/
         └─c4/
     |}]
-;;
 
 let%expect_test
-    "mv should not impact the filesystem if the source does not exists"
-  =
+    "mv should not impact the filesystem if the source does not exists" =
   base_fs
   |> Tree.mv ~target:(Path.rel []) ~source:(Path.rel [ "d"; "d2" ])
   |> Tree.tree
@@ -436,7 +423,6 @@ let%expect_test
         └─c3/
         └─c4/
     |}]
-;;
 
 let%expect_test "mv should not impact the filesystem if the target exists" =
   base_fs
@@ -480,7 +466,6 @@ let%expect_test "mv should not impact the filesystem if the target exists" =
         └─c3/
         └─c4/
     |}]
-;;
 
 let%expect_test "mv" =
   base_fs
@@ -524,7 +509,6 @@ let%expect_test "mv" =
         └─c3/
         └─c4/
     |}]
-;;
 
 let%expect_test "mv" =
   base_fs
@@ -572,7 +556,6 @@ let%expect_test "mv" =
             └─d4/
               └─article-b2-1.md
     |}]
-;;
 
 let%expect_test "mv" =
   base_fs
@@ -616,7 +599,6 @@ let%expect_test "mv" =
         └─c4/
       └─article-b2-1.md
     |}]
-;;
 
 let%expect_test "mv" =
   base_fs
@@ -663,7 +645,6 @@ let%expect_test "mv" =
         └─c3/
         └─c4/
     |}]
-;;
 
 let%expect_test "mv" =
   base_fs
@@ -710,4 +691,3 @@ let%expect_test "mv" =
         └─c3/
         └─c4/
     |}]
-;;

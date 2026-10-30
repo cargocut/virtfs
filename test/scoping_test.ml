@@ -1,5 +1,4 @@
-(* Copyright (c) 2026, Cargocut and the Virtfs developers.
-   All rights reserved.
+(* Copyright (c) 2026, Cargocut and the Virtfs developers. All rights reserved.
 
    SPDX-License-Identifier: BSD-3-Clause *)
 
@@ -9,7 +8,8 @@ let dump = dump_option Path.to_string
 
 let%expect_test "dump some scoping path" =
   let open Path in
-  [ scope_under ~strict:false ~parent:cwd cwd
+  [
+    scope_under ~strict:false ~parent:cwd cwd
   ; scope_under ~parent:cwd (rel [ "foo"; "bar"; "baz" ])
   ; scope_under cwd ~parent:(rel [ "foo"; "bar"; "baz" ])
   ; scope_under ~parent:(rel [ "foo"; "bar"; "baz" ]) (rel [ "bar"; "baz" ])
@@ -50,11 +50,11 @@ let%expect_test "dump some scoping path" =
     None
     None
     |}]
-;;
 
 let%expect_test "resolve under scoping" =
   let open Path in
-  [ scope_under
+  [
+    scope_under
       ~parent:(rel [ "foo"; "bar"; "foobar" ])
       (rel
          [ "foo"; "bar"; "baz"; ".."; "foobar"; ".."; "foobar"; "a"; "b"; "c" ])
@@ -71,4 +71,3 @@ let%expect_test "resolve under scoping" =
     Some (./foo/bar/foobar/a/b/c)
     Some (/foo/bar/foobar/a/b/c)
     |}]
-;;
