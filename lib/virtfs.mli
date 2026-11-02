@@ -16,8 +16,10 @@ module Path = Path
 
 (** {2 Path with capabilities}
 
-    Sometime, we want to port capabilities from path (like the ability of
-    reading it or being able.) *)
+    Sometime, we want to hold capabilities from path (like the ability of
+    reading it or being able to write). *)
+
+module Tpath = Tpath
 
 (** {1 Virtual File System}
 
@@ -30,3 +32,7 @@ module Path = Path
 module Item = Item
 module Conflict = Conflict
 module Tree = Tree
+
+(** {1 Misc} *)
+
+module Tbool = Tbool
