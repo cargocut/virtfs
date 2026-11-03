@@ -20,6 +20,7 @@ module Path = Path
     reading it or being able to write). *)
 
 module Tpath = Tpath
+module Tscope = Tscope
 
 (** {1 Virtual File System}
 

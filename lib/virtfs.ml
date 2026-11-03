@@ -5,6 +5,7 @@
 module Tbool = Tbool
 module Path = Path
 module Tpath = Tpath
+module Tscope = Tscope
 module Item = Item
 module Conflict = Conflict
 module Tree = Tree
