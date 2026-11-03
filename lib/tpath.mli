@@ -14,16 +14,21 @@
     - Concrete path are non-virtual path that can hold [readable] or [writable]
       capabilities. *)
 
-type ('concrete, 'readable, 'writable) t
+type (!'concrete, !'readable, !'writable) t
 (** A type that held capabilities. Capabilities are materialized by
     {!type:Tbool.yes} and {!type:Tbool.no}. *)
 
-type ('readable, 'writable) c
+type ('readable, 'writable) c = (Tbool.yes, 'readable, 'writable) t
 (** Describe {b concrete path} (or non-virtual). Since the path is not virtual,
     it can hold [readable] and [writable] capabilities. *)
 
-type v
+type v = (Tbool.no, Tbool.no, Tbool.no) t
 (** Describe a {b virtual path} where every capabilities are closed. *)
+
+type packed =
+  | Packed : ('concrete, 'readable, 'writable) t -> packed
+      (** A type for packing path, hidding all type parameters (for dealing with
+          batch on path). *)
 
 (** {1 Building path} *)
 
@@ -32,7 +37,7 @@ val c :
   -> writable:'writable Tbool.t
   -> Path.t
   -> ('readable, 'writable) c
-(** [v path] build a {b concrete path} on top of {!type:Path.t} with specific
+(** [c path] build a {b concrete path} on top of {!type:Path.t} with specific
     given [readable] and [writable] capabilities. *)
 
 val v : Path.t -> v
@@ -54,6 +59,9 @@ val as_virtual : bool * bool * Path.t -> v option
     construct a virtual path where both flags must be set to [false]. Useful for
     constructing paths that have been dumped to disk. *)
 
+val pack : ('concrete, 'readable, 'writable) t -> packed
+(** [pack path] hide every type parameters. *)
+
 (** {1 Info of path} *)
 
 val is_concrete : ('concrete, 'readable, 'writable) t -> bool
@@ -71,6 +79,9 @@ val is_readable : ('concrete, 'readable, 'writable) t -> bool
 val is_writable : ('concrete, 'readable, 'writable) t -> bool
 (** [is_writable path] returns [true] if the given [path] is writable, [false]
     otherwise. *)
+
+val path : ('concrete, 'readable, 'writable) t -> Path.t
+(** [path p] returns the raw {!type:Path.t} for the given path [p]. *)
 
 (** {1 Operation on path} *)
 

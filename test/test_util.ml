@@ -29,3 +29,10 @@ let dump_path_map m map =
             ^ metadata_to_string m metadata
             ^ ": "
             ^ content))
+
+let dump_tpath tpath =
+  let is_v = if Tpath.is_virtual tpath then "[v]" else "[x]"
+  and is_r = if Tpath.is_readable tpath then "[x]" else "[ ]"
+  and is_w = if Tpath.is_writable tpath then "[x]" else "[ ]"
+  and p = Tpath.path tpath in
+  print_endline (is_v ^ is_r ^ is_w ^ Path.to_filename p)

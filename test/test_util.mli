@@ -20,3 +20,6 @@ val dump_path_set : Path.Set.t -> unit
 val dump_path_map :
   ('metadata -> string) -> (string, 'metadata) Item.t Path.Map.t -> unit
 (** [dump_path_map ps] dump the given [ps]. *)
+
+val dump_tpath : ('concrete, 'readable, 'writable) Tpath.t -> unit
+(** [dump_tpath tpath] dump the given {!type:Tpath.t}. *)

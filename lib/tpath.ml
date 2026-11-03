@@ -2,17 +2,19 @@
 
    SPDX-License-Identifier: BSD-3-Clause *)
 
-type ('concrete, 'readable, 'writable) t =
+type (!'concrete, !'readable, !'writable) t =
   | Virtual : Path.t -> (Tbool.no, Tbool.no, Tbool.no) t
   | Concrete :
       'readable Tbool.t * 'writable Tbool.t * Path.t
       -> (Tbool.yes, 'readable, 'writable) t
 
+type packed = Packed : ('concrete, 'readable, 'writable) t -> packed
 type v = (Tbool.no, Tbool.no, Tbool.no) t
 type ('readable, 'writable) c = (Tbool.yes, 'readable, 'writable) t
 
 let v path = Virtual path
 let c ~readable ~writable path = Concrete (readable, writable, path)
+let pack p = Packed p
 
 let as_concrete ~readable ~writable (a, b, p) =
   let x = Tbool.to_bool readable and y = Tbool.to_bool writable in
@@ -20,6 +22,9 @@ let as_concrete ~readable ~writable (a, b, p) =
   else None
 
 let as_virtual (a, b, p) = if (not a) && not b then Some (v p) else None
+
+let path (type c r w) : (c, r, w) t -> Path.t = function
+  | Virtual p | Concrete (_, _, p) -> p
 
 let is_virtual (type c r w) : (c, r, w) t -> bool = function
   | Virtual _ -> true
