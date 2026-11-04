@@ -46,4 +46,6 @@ val check :
   -> (unit, error) result
 (** [check ~scope path] ensures that the specified [path] complies with the
     specified [scope]. Since a scope should be a parent, we assume that scoping
-    toa path that is the scope fail. *)
+    to a path that is the scope fail, to not be able to erase (for example) the
+    [cwd]. If the [path] overlap in one of the exclusions list, it will also
+    fail. *)

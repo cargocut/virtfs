@@ -20,7 +20,9 @@ let check ~scope:{ path = global; exclusions } path =
        sure that it is. *)
     let from_exclusions =
       List.find_opt
-        (fun parent -> Path.is_scoped_by ~strict:false ~parent current)
+        (fun excluded ->
+          Path.is_scoped_by ~strict:false ~parent:excluded current
+          || Path.is_scoped_by ~strict:false ~parent:current excluded)
         exclusions
     in
     match from_exclusions with

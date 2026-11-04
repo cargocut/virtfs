@@ -23,3 +23,6 @@ val dump_path_map :
 
 val dump_tpath : ('concrete, 'readable, 'writable) Tpath.t -> unit
 (** [dump_tpath tpath] dump the given {!type:Tpath.t}. *)
+
+val dump_tscope_check : (unit, Tscope.error) result -> unit
+(** [dump_tscope_check result] dump the result of {!val:Tscope.check}. *)

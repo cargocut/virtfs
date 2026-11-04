@@ -36,3 +36,12 @@ let dump_tpath tpath =
   and is_w = if Tpath.is_writable tpath then "[x]" else "[ ]"
   and p = Tpath.path tpath in
   print_endline (is_v ^ is_r ^ is_w ^ Path.to_filename p)
+
+let dump_tscope_check = function
+  | Ok () -> ()
+  | Error (Tscope.Unscoped_by { scope; path }) ->
+      Path.to_filename path ^ " is unscoped by scope: " ^ Path.to_filename scope
+      |> print_endline
+  | Error (Tscope.Overlap_with { path; overlapping }) ->
+      Path.to_filename path ^ " overlap with: " ^ Path.to_filename overlapping
+      |> print_endline
