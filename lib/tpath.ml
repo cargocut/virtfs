@@ -51,3 +51,7 @@ let map : type c r w. (Path.t -> Path.t) -> (c, r, w) t -> (c, r, w) t =
   | Concrete (r, w, p) -> Concrete (r, w, f p)
 
 let from path xs = map (fun p -> Path.append p xs) path
+let revoke_read (Concrete (_, w, p)) = Concrete (Tbool.no, w, p)
+let revoke_write (Concrete (r, _, p)) = Concrete (r, Tbool.no, p)
+let observe_only (Concrete (_, _, p)) = Concrete (Tbool.no, Tbool.no, p)
+let virtualize p = Virtual (path p)

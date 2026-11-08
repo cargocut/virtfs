@@ -2,17 +2,19 @@
 
    SPDX-License-Identifier: BSD-3-Clause *)
 
-(* Describes path that can hold capabilities. *)
+(** Describes path that can hold capabilities. *)
 
 (** {1 Types}
 
-    A Path quand be virtual, or holding [readable] or [writable]
-    capabilites.contents
+    A Path can be virtual, or holding [readable] or [writable] capabilites:
     - Virtual path are just path computed {i virtually}, like for representing
       the path located on a server. So it can't be [readable] nor [writable]
       (because it does not exists).
     - Concrete path are non-virtual path that can hold [readable] or [writable]
-      capabilities. *)
+      capabilities.
+
+    Concrete files are, in effect, {i statable}; one can query them for
+    information such as, for example, their modification date. *)
 
 type (!'concrete, !'readable, !'writable) t
 (** A type that held capabilities. Capabilities are materialized by
@@ -37,8 +39,9 @@ val c :
   -> writable:'writable Tbool.t
   -> Path.t
   -> ('readable, 'writable) c
-(** [c path] build a {b concrete path} on top of {!type:Path.t} with specific
-    given [readable] and [writable] capabilities. *)
+(** [c ~readable ~writable path] build a {b concrete path} on top of
+    {!type:Path.t} with specific given [readable] and [writable] capabilities.
+*)
 
 val v : Path.t -> v
 (** [v path] build a {b virtual path} on top of {!type:Path.t}. *)
@@ -99,6 +102,36 @@ val from :
 (** [from path fragments] calculate a new path (whilst preserving its
     capabilities) by adding the list of given [fragments] to the given [path].
 *)
+
+(** {2 Attenuation}
+
+    Functions to {i attenuate} the capabilities of a path. An attenuation can
+    only remove capabilities, never grant them, so it is always safe to give an
+    attenuated path to code that should be less privileged. *)
+
+val revoke_read : ('readable, 'writable) c -> (Tbool.no, 'writable) c
+(** [revoke_read path] removes the [readable] capability of the given concrete
+    [path], preserving its other capabilities. The resulting path can still be
+    observed (see {!val:is_concrete}) and written if it was writable. *)
+
+val revoke_write : ('readable, 'writable) c -> ('readable, Tbool.no) c
+(** [revoke_write path] removes the [writable] capability of the given concrete
+    [path], preserving its other capabilities. The resulting path can still be
+    observed and read if it was readable. *)
+
+val observe_only : ('readable, 'writable) c -> (Tbool.no, Tbool.no) c
+(** [observe_only path] removes both [readable] and [writable] capabilities of
+    the given concrete [path]. The resulting path remains concrete: it can only
+    be observed (existence, modification time, kind) but neither read nor
+    written. Useful to track a dependency without being able to read its
+    content. *)
+
+val virtualize : ('concrete, 'readable, 'writable) t -> v
+(** [virtualize path] forgets every capability of the given [path], including
+    its concreteness. The resulting path is purely {i virtual}: it can still be
+    manipulated as a path (see {!val:map}) but no longer refers to anything that
+    can be observed, read or written. Useful to compute, for example, a target
+    URL from a source file. *)
 
 (** {1 Misc} *)
 
