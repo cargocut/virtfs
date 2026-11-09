@@ -1,5 +1,4 @@
-(* Copyright (c) 2026, Cargocut and the Virtfs developers.
-   All rights reserved.
+(* Copyright (c) 2026, Cargocut and the Virtfs developers. All rights reserved.
 
    SPDX-License-Identifier: BSD-3-Clause *)
 
@@ -14,13 +13,12 @@ let%expect_test
                      |_ remove dot
                      \_ `./foo/baz/index.md`
 |}
-  =
+    =
   let computed = Path.rel [ "foo"; "bar"; ".."; "baz"; "."; "index.md" ]
   and expected = Path.rel [ "foo"; "baz"; "index.md" ] in
   let () = assert (Path.equal expected computed) in
   dump_path computed;
   [%expect {| ./foo/baz/index.md |}]
-;;
 
 let%expect_test
     {|
@@ -31,13 +29,12 @@ let%expect_test
                     |_ remove bar
                      \_ `../../../index.md`
 |}
-  =
+    =
   let computed = Path.rel [ "."; "../../../bar/../index.md" ]
   and expected = Path.rel [ ".."; ".."; ".."; "index.md" ] in
   let () = assert (Path.equal expected computed) in
   dump_path computed;
   [%expect {| ./../../../index.md |}]
-;;
 
 let%expect_test
     {|
@@ -50,7 +47,7 @@ let%expect_test
                     |_ remove bar
                     |_ `../../../foobar/baz/index.md`
 |}
-  =
+    =
   let computed =
     Path.rel
       [ "."; "../../../bar/.."; "foobar"; "baz"; "bar"; ".."; "index.md" ]
@@ -58,7 +55,6 @@ let%expect_test
   let () = assert (Path.equal expected computed) in
   dump_path computed;
   [%expect {| ./../../../foobar/baz/index.md |}]
-;;
 
 let%expect_test
     {|
@@ -72,10 +68,11 @@ let%expect_test
                     |_ add ..
                     |_ `../../../../index.md`
 |}
-  =
+    =
   let computed =
     Path.rel
-      [ "."
+      [
+        "."
       ; "../../../bar/.."
       ; "foobar"
       ; "baz"
@@ -90,7 +87,6 @@ let%expect_test
   let () = assert (Path.equal expected computed) in
   dump_path computed;
   [%expect {| ./../../../../index.md |}]
-;;
 
 let%expect_test
     {|
@@ -105,10 +101,11 @@ let%expect_test
                     |_ `../../../../index.md`
                     |_ remove leading ..
 |}
-  =
+    =
   let computed =
     Path.abs
-      [ "../../../bar/.."
+      [
+        "../../../bar/.."
       ; "foobar"
       ; "baz"
       ; "bar"
@@ -122,4 +119,3 @@ let%expect_test
   let () = assert (Path.equal expected computed) in
   dump_path computed;
   [%expect {| /index.md |}]
-;;

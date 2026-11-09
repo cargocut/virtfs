@@ -1,3 +1,7 @@
+### Unreleased
+
+- Add Typed Path and Scope inspired by GPBE project (by [mspwn](https://github.com/mspwn), [gr-im](https://github.com/gr-im) and [xvw](https://github.com/xvw))
+
 ### 2.0.0
 
 - Add advanced scoping function for path (by [gr-im](https://github.com/gr-im) and [xvw](https://github.com/xvw))

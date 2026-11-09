@@ -30,7 +30,7 @@
   ;; test setup
   (ppx_expect (and :with-test (>= v0.17.3)))
   (mdx (and :with-test  (>= 2.5.1)))
-   
+
   ;; dev setup
   (utop :with-dev-setup)
   (ocamlformat :with-dev-setup)
@@ -38,4 +38,4 @@
   (merlin :with-dev-setup)
   (ocaml-lsp-server :with-dev-setup)))
 
- 
+
