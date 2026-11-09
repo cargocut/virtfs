@@ -17,7 +17,11 @@ let check ~scope:{ path = global; exclusions } path =
   let parent = global |> Tpath.path and current = Tpath.path path in
   if Path.is_scoped_by ~strict:true ~parent current then
     (* The path seems legit, but we want to explore the exclusion list to be
-       sure that it is. *)
+       sure that it is.
+
+       NOTE: An exclusion whose kind (absolute or relative) differs from the
+       kind of [current] can never match, so it is silently ignored. See the
+       warning in the documentation of {!val:make}. *)
     let from_exclusions =
       List.find_opt
         (fun excluded ->

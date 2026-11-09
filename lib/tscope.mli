@@ -38,7 +38,13 @@ val make :
   -> ('concrete, 'readable, 'writable) t
 (** [make ?exclusions path] creates a scope for a given [path], whilst
     preserving its capabilities (scopes and paths must share their capabilities)
-    and with an optional list of excluded paths ([exclusions]). *)
+    and with an optional list of excluded paths ([exclusions]).
+
+    {b Warning}: [path] and every exclusion are expected to have the same kind
+    (absolute or relative). An exclusion of a different kind is never matched by
+    {!val:check}, which can let through a path that should be excluded. It is up
+    to the caller to resolve paths beforehand (for example, by resolving every
+    path against the current working directory). *)
 
 val check :
      scope:('concrete, 'readable, 'writable) t

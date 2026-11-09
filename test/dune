@@ -20,6 +20,7 @@
   common_prefix_test
   scoping_test
   tpath_test
-  tscope_test)
+  tscope_test
+  tscope_example_test)
  (preprocess
   (pps ppx_expect)))
