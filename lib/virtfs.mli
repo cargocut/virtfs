@@ -34,6 +34,11 @@ module Item = Item
 module Conflict = Conflict
 module Tree = Tree
 
+(** {1 Building components} *)
+
+module Make = Make
+
 (** {1 Misc} *)
 
+module Intf = Intf
 module Tbool = Tbool

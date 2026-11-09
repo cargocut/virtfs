@@ -2,6 +2,7 @@
 
    SPDX-License-Identifier: BSD-3-Clause *)
 
+module Intf = Intf
 module Tbool = Tbool
 module Path = Path
 module Tpath = Tpath
@@ -9,3 +10,4 @@ module Tscope = Tscope
 module Item = Item
 module Conflict = Conflict
 module Tree = Tree
+module Make = Make
