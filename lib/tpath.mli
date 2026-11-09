@@ -139,4 +139,4 @@ val equal :
      ('concrete, 'readable, 'writable) t
   -> ('concrete, 'readable, 'writable) t
   -> bool
-(** [equal a b] equality between {!val:t}. *)
+(** [equal a b] equality between {!type:t}. *)

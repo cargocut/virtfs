@@ -22,7 +22,7 @@ val dump_path_map :
 (** [dump_path_map ps] dump the given [ps]. *)
 
 val dump_tpath : ('concrete, 'readable, 'writable) Tpath.t -> unit
-(** [dump_tpath tpath] dump the given {!type:Tpath.t}. *)
+(** [dump_tpath tpath] dump the given {!type:Virtfs.Tpath.t}. *)
 
 val dump_tscope_check : (unit, Tscope.error) result -> unit
-(** [dump_tscope_check result] dump the result of {!val:Tscope.check}. *)
+(** [dump_tscope_check result] dump the result of {!val:Virtfs.Tscope.check}. *)
